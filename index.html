@@ -1,0 +1,1632 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>¿Qué desayuno hoy?</title>
+
+<!-- PWA Meta -->
+<meta name="application-name" content="Desayuno">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Desayuno">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#18181B">
+<meta name="description" content="Tu plan de desayunos personalizado según el tipo de día">
+
+<!-- Icons -->
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="manifest" href="manifest.json">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap');
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#F2F0EB;--surface:#FAFAF8;--text:#18181B;--muted:#71717A;--border:#E4E2DB;
+  --run:#166534;--run-l:#DCFCE7;--run-m:#BBF7D0;
+  --gym:#1E3A5F;--gym-l:#DBEAFE;--gym-m:#BFDBFE;
+  --rest:#581C87;--rest-l:#F3E8FF;--rest-m:#E9D5FF;
+  --acc:#2563EB;--acc-l:#EFF6FF;
+  --warn:#B45309;--warn-l:#FEF3C7;
+  --ok:#15803D;--ok-l:#DCFCE7;
+}
+html{font-size:16px}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding-bottom:env(safe-area-inset-bottom)}
+@media(prefers-color-scheme:dark){
+  :root{--bg:#1C1C1E;--surface:#2C2C2E;--text:#F2F2F7;--muted:#8E8E93;--border:#3A3A3C}
+
+  body{background:var(--bg);color:var(--text)}
+
+  /* ── HEADER: same as light mode ── */
+  .hdr{background:var(--text);border-bottom:none}
+  .hdr h1{color:#fff}
+  .hdr p{color:rgba(255,255,255,.45)}
+  .hdr-btn{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);color:#fff}
+  .hdr-btn:hover{background:rgba(255,255,255,.18)}
+
+  /* ── PRIMARY BUTTON (Nuevo desayuno) ── */
+  .btn-primary{
+    background:#F2F2F7 !important;
+    color:#1C1C1E !important;
+    border:none !important;
+    -webkit-appearance:none;
+  }
+  .btn-primary:hover{opacity:.88}
+  .btn-secondary{background:#2C2C2E;color:#F2F2F7;border-color:var(--border)}
+  .btn-secondary:hover{border-color:#8E8E93}
+
+  /* ── OPTIONS ── */
+  .opt{background:#2C2C2E;color:#F2F2F7;border-color:var(--border)}
+  .opt-lbl{color:#F2F2F7}
+  .opt-sub{color:var(--muted)}
+  .opt:hover{border-color:#8E8E93;background:#3A3A3C}
+  .opt.run:hover .opt-lbl{color:#4ADA80}
+  .opt.gym:hover .opt-lbl{color:#6AB0FF}
+  .opt.rest:hover .opt-lbl{color:#BF5AF2}
+
+  /* ── STEPS ── */
+  .step-q{color:#F2F2F7}
+  .step-hint{color:var(--muted)}
+  .step-ew{color:var(--muted)}
+  .back-btn{color:var(--muted)}
+  .back-btn:hover{color:#F2F2F7}
+  .main{color:#F2F2F7}
+
+  /* ── BREADCRUMB ── */
+  .bc{background:#2C2C2E;border-color:var(--border)}
+  .bc-item{color:var(--muted)}
+  .bc-item.cur{color:#F2F2F7}
+  .bc-btn{color:var(--muted)}
+  .bc-btn:hover{color:#F2F2F7}
+  .bc-sep{color:var(--border)}
+
+  /* ── PROGRESS BAR ── */
+  .prog{background:var(--border)}
+  .prog-fill{background:#6AB0FF}
+
+  /* ── RESULT CARD ── */
+  .res-card{background:#2C2C2E;border-color:var(--border)}
+  .res-hdr{border-color:var(--border);background:#2C2C2E}
+  .res-sect{border-color:var(--border)}
+  .res-name{color:#F2F2F7}
+  .res-code{color:var(--muted)}
+  .res-badge{opacity:.95}
+  .sect-lbl{color:var(--muted)}
+
+  /* ── INGREDIENTS ── */
+  .ing-name{color:#F2F2F7}
+  .ing-qty{color:var(--muted)}
+  .base-lbl{color:var(--muted)}
+  .dot-legend{background:#1C1C1E;border-color:var(--border)}
+  .dot-legend-item{color:var(--muted)}
+
+  /* ── MACROS ── */
+  .macros .mac{background:#1C1C1E}
+  .mac-v.k{color:#FF9F0A}
+  .mac-v.p{color:#6AB0FF}
+  .mac-v.c{color:#4ADA80}
+  .mac-v.f{color:#FF6B35}
+  .mac-l{color:var(--muted)}
+
+  /* ── WHY TEXT ── */
+  .why-txt{color:#F2F2F7}
+  .why-tags .wtag.g{background:#0D3320;color:#4ADA80}
+  .why-tags .wtag.b{background:#0D1F3C;color:#6AB0FF}
+  .why-tags .wtag.a{background:#3A2000;color:#FF9F0A}
+  .why-tags .wtag.p{background:#2A0A3A;color:#BF5AF2}
+
+  /* ── NOTES ── */
+  .spec-note.warn{background:#3A2000;color:#FF9F0A}
+  .spec-note.ok{background:#0D3320;color:#4ADA80}
+  .spec-note.info{background:#0D1F3C;color:#6AB0FF}
+  .base-note{background:#2C2C2E;color:var(--muted);border-color:var(--border)}
+  .ayunas-block{background:#1C1C1E;border-color:var(--border)}
+
+  /* ── HISTORY ── */
+  .hist-panel{background:#2C2C2E;border-color:var(--border)}
+  .hist-item{background:#1C1C1E;border-color:var(--border)}
+  .hist-item:hover{background:#3A3A3C}
+  .hist-name{color:#F2F2F7}
+  .hist-meta{color:var(--muted)}
+  .hist-tag{background:#3A2000;color:#FF9F0A}
+
+  /* ── INSTALL BANNERS ── */
+  #installBanner,#iosBanner{background:#2C2C2E;border-top:1px solid var(--border)}
+}
+
+/* HEADER */
+.hdr{background:var(--text);color:#fff;padding:1.25rem 1.5rem;display:flex;align-items:center;justify-content:space-between;gap:1rem}
+.hdr h1{font-size:1rem;font-weight:600;letter-spacing:-.02em}
+.hdr p{font-size:.68rem;opacity:.45;font-family:'DM Mono',monospace;margin-top:.1rem;letter-spacing:.04em}
+.hdr-btns{display:flex;gap:.5rem}
+.hdr-btn{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);color:#fff;padding:.35rem .75rem;border-radius:6px;font-size:.72rem;font-family:'DM Mono',monospace;cursor:pointer;transition:background .15s;letter-spacing:.04em;white-space:nowrap}
+.hdr-btn:hover{background:rgba(255,255,255,.18)}
+
+/* PROGRESS */
+.prog{height:3px;background:var(--border)}
+.prog-fill{height:100%;background:var(--acc);transition:width .4s cubic-bezier(.4,0,.2,1)}
+
+/* MAIN */
+.main{max-width:680px;margin:0 auto;padding:2rem 1.25rem 4rem}
+
+/* BREADCRUMB */
+.bc{display:none;flex-wrap:wrap;gap:.25rem;margin-bottom:1.25rem;padding:.6rem .9rem;background:var(--surface);border-radius:8px;border:1px solid var(--border)}
+.bc-item{font-size:.68rem;font-family:'DM Mono',monospace;color:var(--muted)}
+.bc-item.cur{color:var(--text);font-weight:500}
+.bc-sep{color:var(--border);font-size:.65rem}
+.bc-btn{background:none;border:none;font-size:.68rem;font-family:'DM Mono',monospace;color:var(--muted);cursor:pointer;padding:0;text-decoration:underline;text-underline-offset:2px;transition:color .15s}
+.bc-btn:hover{color:var(--text)}
+
+/* HISTORY PANEL */
+.hist-panel{background:var(--surface);border:1.5px solid var(--border);border-radius:12px;padding:1rem 1.25rem;margin-bottom:1.5rem;display:none}
+.hist-title{font-family:'DM Mono',monospace;font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:.75rem;display:flex;align-items:center;justify-content:space-between}
+.hist-items{display:flex;flex-direction:column;gap:.4rem}
+.hist-item{display:flex;align-items:center;gap:.6rem;padding:.45rem .7rem;background:var(--bg);border-radius:6px;cursor:pointer;transition:background .15s;border:1px solid transparent}
+.hist-item:hover{background:#EDEDEA;border-color:var(--border)}
+.hist-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.hist-dot.run{background:var(--run)}
+.hist-dot.gym{background:var(--gym)}
+.hist-dot.rest{background:var(--rest)}
+.hist-name{font-size:.8rem;font-weight:500;flex:1}
+.hist-meta{font-size:.68rem;color:var(--muted);font-family:'DM Mono',monospace}
+.hist-tag{font-size:.6rem;font-family:'DM Mono',monospace;padding:.15rem .4rem;border-radius:3px;background:var(--warn-l);color:var(--warn)}
+
+/* STEP */
+.step{display:none;animation:fs .28s ease both}
+.step.active{display:block}
+@keyframes fs{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+
+.step-ew{font-family:'DM Mono',monospace;font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:.5rem;display:flex;align-items:center;gap:.5rem}
+.step-ew::after{content:'';flex:1;height:1px;background:var(--border)}
+.step-q{font-size:1.25rem;font-weight:600;letter-spacing:-.02em;line-height:1.3;margin-bottom:.4rem}
+.step-hint{font-size:.8rem;color:var(--muted);font-weight:300;margin-bottom:1.5rem;line-height:1.5}
+
+.back-btn{background:none;border:none;color:var(--muted);font-size:.72rem;font-family:'DM Mono',monospace;cursor:pointer;padding:0;margin-bottom:1.25rem;display:flex;align-items:center;gap:.35rem;letter-spacing:.04em;transition:color .15s}
+.back-btn:hover{color:var(--text)}
+
+/* OPTIONS */
+.opts{display:flex;flex-direction:column;gap:.55rem}
+.opts-2{display:grid;grid-template-columns:1fr 1fr;gap:.55rem}
+.opts-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:.55rem}
+
+.opt{background:var(--surface);border:1.5px solid var(--border);border-radius:10px;padding:.85rem 1rem;cursor:pointer;text-align:left;transition:all .15s ease;position:relative;overflow:hidden}
+.opt:hover{border-color:var(--acc);transform:translateY(-1px);box-shadow:0 3px 10px rgba(0,0,0,.07)}
+.opt:active{transform:translateY(0)}
+.opt.run:hover{border-color:var(--run)}
+.opt.gym:hover{border-color:var(--gym)}
+.opt.rest:hover{border-color:var(--rest)}
+.opt-icon{font-size:1.3rem;display:block;margin-bottom:.4rem;line-height:1}
+.opt-lbl{font-size:.88rem;font-weight:600;display:block;margin-bottom:.15rem;color:var(--text)}
+.opt-sub{font-size:.72rem;color:var(--muted);font-weight:300;line-height:1.4;display:block}
+.opt.run:hover .opt-lbl{color:var(--run)}
+.opt.gym:hover .opt-lbl{color:var(--gym)}
+.opt.rest:hover .opt-lbl{color:var(--rest)}
+.opt.recommended::after{content:'✓ recomendado';position:absolute;top:.5rem;right:.5rem;font-family:'DM Mono',monospace;font-size:.58rem;background:var(--warn-l);color:var(--warn);padding:.15rem .4rem;border-radius:3px;letter-spacing:.04em}
+
+/* RESULT */
+.res-card{background:var(--surface);border:1.5px solid var(--border);border-radius:14px;overflow:hidden}
+.res-hdr{padding:1.25rem 1.25rem 1rem;border-bottom:1px solid var(--border)}
+.res-badge{font-family:'DM Mono',monospace;font-size:.6rem;letter-spacing:.1em;text-transform:uppercase;padding:.2rem .55rem;border-radius:20px;display:inline-block;margin-bottom:.6rem;font-weight:500}
+.badge-run{background:var(--run-l);color:var(--run)}
+.badge-gym{background:var(--gym-l);color:var(--gym)}
+.badge-rest{background:var(--rest-l);color:var(--rest)}
+.res-name{font-size:1.2rem;font-weight:600;letter-spacing:-.02em;margin-bottom:.2rem}
+.res-code{font-family:'DM Mono',monospace;font-size:.68rem;color:var(--muted)}
+
+/* SECTIONS */
+.res-sect{padding:1rem 1.25rem;border-bottom:1px solid var(--border)}
+.res-sect:last-child{border-bottom:none}
+.sect-lbl{font-family:'DM Mono',monospace;font-size:.6rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:.7rem;display:block}
+.dot-legend{display:flex;flex-wrap:wrap;gap:.5rem 1rem;margin-bottom:.75rem;padding:.5rem .75rem;background:var(--bg);border-radius:6px;border:1px dashed var(--border)}
+.dot-legend-item{display:flex;align-items:center;gap:.35rem;font-size:.7rem;color:var(--muted);font-family:'DM Mono',monospace}
+.dl-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+
+/* INGREDIENTS */
+.ing-item{display:flex;align-items:flex-start;gap:.55rem;margin-bottom:.45rem;width:100%}
+.ing-dot{width:6px!important;height:6px!important;min-width:6px!important;min-height:6px!important;max-width:6px!important;max-height:6px!important;border-radius:50%!important;flex-shrink:0;opacity:0.45;display:block;padding:0!important;box-sizing:content-box!important;margin-top:.3rem}
+.ing-dot.base{background:#94A3B8}
+.ing-dot.main{background:var(--acc)}
+.ing-dot.fruit{background:var(--ok)}
+.ing-dot.pre{background:var(--warn)}
+.ing-dot.post{background:var(--rest)}
+.ing-name{font-size:.83rem;line-height:1.4}
+.ing-qty{font-family:'DM Mono',monospace;font-size:.68rem;color:var(--muted);display:block;margin-top:.05rem}
+.ing-note{font-size:.7rem;color:var(--ok);font-weight:500;display:block}
+.base-lbl{font-family:'DM Mono',monospace;font-size:.58rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:.65rem 0 .4rem;display:block}
+
+/* MACROS */
+.macros{display:grid;grid-template-columns:repeat(4,1fr);gap:.4rem}
+.mac{background:var(--bg);border-radius:7px;padding:.55rem .4rem;text-align:center}
+.mac-v{font-family:'DM Mono',monospace;font-size:.95rem;font-weight:500;display:block;line-height:1;margin-bottom:.2rem}
+.mac-v.k{color:var(--warn)}
+.mac-v.p{color:var(--gym)}
+.mac-v.c{color:var(--run)}
+.mac-v.f{color:#92400E}
+.mac-l{font-size:.58rem;color:var(--muted);font-family:'DM Mono',monospace;letter-spacing:.04em;text-transform:uppercase}
+
+/* WHY */
+.why-txt{font-size:.83rem;color:var(--text);line-height:1.65;font-weight:300}
+.why-txt strong{font-weight:600}
+.why-tags{display:flex;flex-wrap:wrap;gap:.3rem;margin-top:.8rem}
+.wtag{font-family:'DM Mono',monospace;font-size:.6rem;padding:.18rem .5rem;border-radius:3px;letter-spacing:.03em}
+.wtag.g{background:var(--run-l);color:var(--run)}
+.wtag.b{background:var(--gym-l);color:var(--gym)}
+.wtag.a{background:var(--warn-l);color:var(--warn)}
+.wtag.p{background:var(--rest-l);color:var(--rest)}
+
+/* SPECIAL NOTES */
+.spec-note{margin-top:.75rem;padding:.65rem .85rem;border-radius:7px;font-size:.76rem;line-height:1.5}
+.spec-note.warn{background:var(--warn-l);color:var(--warn)}
+.spec-note.ok{background:var(--ok-l);color:var(--ok)}
+.spec-note.info{background:var(--acc-l);color:var(--acc)}
+
+/* PRE/POST CARRERA AYUNAS */
+.ayunas-block{background:var(--bg);border-radius:8px;padding:.75rem;margin-bottom:.5rem;border:1px solid var(--border)}
+.ayunas-block-title{font-family:'DM Mono',monospace;font-size:.62rem;letter-spacing:.08em;text-transform:uppercase;margin-bottom:.5rem;display:block}
+.ayunas-block.pre .ayunas-block-title{color:var(--warn)}
+.ayunas-block.post .ayunas-block-title{color:var(--rest)}
+
+/* BOTTOM BUTTONS */
+.res-btns{display:flex;gap:.6rem;margin-top:1rem}
+.btn-primary{flex:1;background:var(--text);color:#fff;border:none;border-radius:9px;padding:.8rem;font-size:.85rem;font-weight:500;cursor:pointer;transition:opacity .15s;font-family:'DM Sans',sans-serif}
+.btn-primary:hover{opacity:.85}
+.btn-secondary{background:var(--surface);color:var(--text);border:1.5px solid var(--border);border-radius:9px;padding:.8rem 1.25rem;font-size:.82rem;cursor:pointer;transition:all .15s;font-family:'DM Sans',sans-serif;font-weight:500}
+.btn-secondary:hover{border-color:var(--text)}
+
+.base-note{margin-top:.9rem;padding:.65rem .85rem;background:#F8FAFC;border-radius:7px;border:1px dashed var(--border);font-size:.75rem;color:var(--muted);line-height:1.5}
+.base-note strong{color:var(--text);font-weight:500}
+
+/* HISTORY DELETE */
+.hist-item{position:relative}
+.hist-del{background:none;border:none;color:var(--muted);cursor:pointer;font-size:.9rem;padding:.2rem .4rem;border-radius:4px;transition:all .15s;flex-shrink:0;line-height:1}
+.hist-del:hover{background:#FEE2E2;color:#B91C1C}
+
+/* CONFIRM SCREEN */
+.confirm-card{background:var(--surface);border:1.5px solid var(--border);border-radius:14px;overflow:hidden;margin-bottom:1rem}
+.confirm-top{padding:1.5rem 1.25rem 1.25rem;border-bottom:1px solid var(--border);text-align:center}
+.confirm-check{font-size:2.5rem;display:block;margin-bottom:.5rem}
+.confirm-title{font-size:1.1rem;font-weight:600;letter-spacing:-.02em;color:var(--text);margin-bottom:.2rem}
+.confirm-date{font-family:'DM Mono',monospace;font-size:.68rem;color:var(--muted)}
+.confirm-body{padding:1rem 1.25rem}
+.confirm-row{display:flex;justify-content:space-between;align-items:center;padding:.4rem 0;border-bottom:.5px solid var(--border);font-size:.82rem}
+.confirm-row:last-child{border-bottom:none}
+.confirm-lbl{color:var(--muted);font-family:'DM Mono',monospace;font-size:.68rem;letter-spacing:.04em}
+.confirm-val{font-weight:500;color:var(--text)}
+.confirm-macros{display:grid;grid-template-columns:repeat(4,1fr);gap:.4rem;padding:1rem 1.25rem;border-top:1px solid var(--border)}
+.confirm-mac{background:var(--bg);border-radius:7px;padding:.5rem .4rem;text-align:center}
+.confirm-mac-v{font-family:'DM Mono',monospace;font-size:.88rem;font-weight:500;display:block;margin-bottom:.15rem}
+.confirm-mac-l{font-size:.58rem;color:var(--muted);font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.04em}
+.confirm-btns{display:flex;gap:.6rem;margin-top:1rem}
+
+/* DARK MODE additions */
+@media(prefers-color-scheme:dark){
+  .base-note{background:#2C2C2E}
+  .hist-del:hover{background:#3A0D0D;color:#FF6B6B}
+  .confirm-card{background:#2C2C2E;border-color:var(--border)}
+  .confirm-top{border-color:var(--border)}
+  .confirm-body{background:#2C2C2E}
+  .confirm-row{border-color:var(--border)}
+  .confirm-mac{background:#1C1C1E}
+  .confirm-mac-v{color:#F2F2F7}
+}
+
+@media(max-width:480px){
+  .opts-2,.opts-3{grid-template-columns:1fr}
+  .macros{grid-template-columns:repeat(2,1fr)}
+  .main{padding:1.25rem .9rem 3rem}
+  .step-q{font-size:1.1rem}
+  .res-btns{flex-direction:column}
+}
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <div>
+    <h1>¿Qué desayuno hoy?</h1>
+    <p>Plan personalizado · Carlos</p>
+  </div>
+  <div class="hdr-btns">
+    <button class="hdr-btn" onclick="showHistory()">📋 Historial</button>
+    <button class="hdr-btn" onclick="reset()">↺ Reiniciar</button>
+  </div>
+</div>
+
+<div class="prog"><div class="prog-fill" id="pf" style="width:0%"></div></div>
+
+<div class="main">
+  <div class="bc" id="bc"></div>
+  <div class="hist-panel" id="histPanel">
+    <div class="hist-title">
+      <span>Desayunos recientes</span>
+      <button class="hdr-btn" onclick="hideHistory()" style="padding:.2rem .5rem;font-size:.6rem">✕ cerrar</button>
+    </div>
+    <div class="hist-items" id="histItems"></div>
+  </div>
+
+  <!-- S1: Tipo de día -->
+  <div class="step active" id="s1">
+    <div class="step-ew">Paso 1</div>
+    <div class="step-q">¿Qué tipo de día es hoy?</div>
+    <div class="step-hint">Define tus necesidades energéticas y el enfoque del desayuno.</div>
+    <div class="opts">
+      <button class="opt run" onclick="go('dayType','run','Carrera 🏃')">
+        <span class="opt-icon">🏃</span><span class="opt-lbl">Día de carrera</span>
+        <span class="opt-sub">Prioridad: carbos disponibles · digestión ligera</span>
+      </button>
+      <button class="opt gym" onclick="go('dayType','gym','Gimnasio 🏋️')">
+        <span class="opt-icon">🏋️</span><span class="opt-lbl">Día de gimnasio</span>
+        <span class="opt-sub">Prioridad: proteína y saciedad · fuerza intensa</span>
+      </button>
+      <button class="opt rest" onclick="go('dayType','rest','Descanso 😴')">
+        <span class="opt-icon">😴</span><span class="opt-lbl">Día de descanso</span>
+        <span class="opt-sub">Prioridad: déficit marcado · sin actividad física</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- S2A: Horas carrera -->
+  <div class="step" id="s2a">
+    <button class="back-btn" onclick="back()">← volver</button>
+    <div class="step-ew">Paso 2</div>
+    <div class="step-q">¿En cuántas horas sales a correr?</div>
+    <div class="step-hint">El tiempo define cuántos carbos necesitas ahora y qué tipo.</div>
+    <div class="opts">
+      <div class="opts-2">
+        <button class="opt" onclick="go('hours','fasted','Carrera en ayunas 🌅')">
+          <span class="opt-icon">🌅</span><span class="opt-lbl">Salgo en ayunas</span>
+          <span class="opt-sub">Maximizar oxidación de grasa</span>
+        </button>
+        <button class="opt" onclick="go('hours','under1h','30-60 min ⚡')">
+          <span class="opt-icon">⚡</span><span class="opt-lbl">30-60 minutos</span>
+          <span class="opt-sub">Desayuno mínimo · digestión ultra rápida</span>
+        </button>
+      </div>
+      <div class="opts-2">
+        <button class="opt" onclick="go('hours','under2','Menos de 2h 🕐')">
+          <span class="opt-icon">🕐</span><span class="opt-lbl">1 a 2 horas</span>
+          <span class="opt-sub">Digestión rápida · carbos disponibles ya</span>
+        </button>
+        <button class="opt" onclick="go('hours','2to4','2-4 horas 🕑')">
+          <span class="opt-icon">🕑</span><span class="opt-lbl">2 a 4 horas</span>
+          <span class="opt-sub">Ventana ideal · desayuno completo</span>
+        </button>
+      </div>
+      <button class="opt" onclick="go('hours','4plus','Más de 4h 🕓')">
+        <span class="opt-icon">🕓</span><span class="opt-lbl">Más de 4 horas</span>
+        <span class="opt-sub">Total flexibilidad</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- S2B: Horas gym -->
+  <div class="step" id="s2b">
+    <button class="back-btn" onclick="back()">← volver</button>
+    <div class="step-ew">Paso 2</div>
+    <div class="step-q">¿En cuántas horas vas al gimnasio?</div>
+    <div class="step-hint">Con más tiempo, los carbos tienen menos protagonismo en el desayuno.</div>
+    <div class="opts">
+      <button class="opt" onclick="go('hours','under1h','30-60 min ⚡')">
+        <span class="opt-icon">⚡</span><span class="opt-lbl">30-60 minutos</span>
+        <span class="opt-sub">Desayuno mínimo · digestión ultra rápida</span>
+      </button>
+      <div class="opts-2">
+        <button class="opt" onclick="go('hours','under2','1-2 horas 🕐')">
+          <span class="opt-icon">🕐</span><span class="opt-lbl">1 a 2 horas</span>
+          <span class="opt-sub">Digestión ligera · sin grasa extra</span>
+        </button>
+        <button class="opt" onclick="go('hours','2to4','2-4 horas 🕑')">
+          <span class="opt-icon">🕑</span><span class="opt-lbl">2 a 4 horas</span>
+          <span class="opt-sub">Lo habitual · desayuno completo</span>
+        </button>
+      </div>
+      <button class="opt" onclick="go('hours','4plus','Más de 4h 🕓')">
+        <span class="opt-icon">🕓</span><span class="opt-lbl">Más de 4 horas</span>
+        <span class="opt-sub">Total flexibilidad · desayuna con calma</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- S_EXTRA: Proteína extra gym under1h -->
+  <div class="step" id="sExtra">
+    <button class="back-btn" onclick="back()">← volver</button>
+    <div class="step-ew">Paso 3</div>
+    <div class="step-q">¿Qué proteína extra tomas?</div>
+    <div class="step-hint">Con tan poco margen, la proteína líquida o de fácil digestión es clave para proteger el músculo sin sobrecargar el estómago.</div>
+    <div class="opts-2" id="sExtraOpts">
+      <button class="opt" onclick="go('extra','barrita','Barrita proteica 🍫')">
+        <span class="opt-icon">🍫</span><span class="opt-lbl">Barrita Alcampo</span>
+        <span class="opt-sub">~13g proteína · si el estómago lo tolera bien con ese margen</span>
+      </button>
+      <button class="opt" onclick="go('extra','gelatina','Gelatina proteica 🟢')">
+        <span class="opt-icon">🟢</span><span class="opt-lbl">Vasito de gelatina proteica</span>
+        <span class="opt-sub">~9g proteína · 36 kcal · la opción más ligera y fácil de digerir</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- S2C: Descanso ayuno? -->
+  <div class="step" id="s2c">
+    <button class="back-btn" onclick="back()">← volver</button>
+    <div class="step-ew">Paso 2</div>
+    <div class="step-q">¿Tienes hambre real al levantarte?</div>
+    <div class="step-hint">En días de descanso el ayuno 16:8 es una opción válida si el cuerpo no pide desayuno.</div>
+    <div class="opts">
+      <button class="opt" onclick="go('fast','no','Quiero desayunar 🍳')">
+        <span class="opt-icon">🍳</span><span class="opt-lbl">Sí, tengo hambre</span>
+        <span class="opt-sub">Prefiero desayunar y empezar el día con energía</span>
+      </button>
+      <button class="opt rest" onclick="go('fast','yes','Ayuno 16:8 ⏱️')">
+        <span class="opt-icon">⏱️</span><span class="opt-lbl">No tengo hambre real → Ayuno 16:8</span>
+        <span class="opt-sub">Café solo + agua hasta las ~14:00 · máximo déficit</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- S_CACAHU: Cacahuete en polvo en yogur -->
+  <div class="step" id="sCacahu">
+    <button class="back-btn" onclick="back()">← volver</button>
+    <div class="step-ew">Paso 3</div>
+    <div class="step-q">¿Añades cacahuete en polvo al yogur?</div>
+    <div class="step-hint">15-20g de cacahuete desgrasado en polvo (Mercadona) mezclado en el yogur — +7g proteína, sabor cacahuete, sin apenas grasa. Complementario al cacao (10g), no alternativo — puedes usar ambos.</div>
+    <div class="opts-2">
+      <button class="opt" onclick="go('cacahu','yes','Con cacahuete en polvo 🥜')">
+        <span class="opt-icon">🥜</span>
+        <span class="opt-lbl">Sí, con cacahuete en polvo</span>
+        <span class="opt-sub">15-20g en el yogur · +7g proteína · sabor cacahuete · 0 grasa extra</span>
+      </button>
+      <button class="opt" onclick="go('cacahu','no','Sin cacahuete en polvo')">
+        <span class="opt-icon">✕</span>
+        <span class="opt-lbl">No, yogur solo</span>
+        <span class="opt-sub">El yogur ya es completo sin añadir nada</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- S4: Formato -->
+  <div class="step" id="s4">
+    <button class="back-btn" onclick="back()">← volver</button>
+    <div class="step-ew">Paso 3</div>
+    <div class="step-q">¿Qué formato te apetece?</div>
+    <div class="step-hint">Todos los formatos están adaptados a tu objetivo y tipo de día.</div>
+    <div class="opts" id="s4opts"></div>
+  </div>
+
+  <!-- S5: Detalle proteína/base -->
+  <div class="step" id="s5">
+    <button class="back-btn" onclick="back()">← volver</button>
+    <div class="step-ew">Paso 4</div>
+    <div class="step-q" id="s5q">¿Qué proteína prefieres?</div>
+    <div class="step-hint" id="s5h">Elige según lo que tengas en casa o lo que más te apetezca.</div>
+    <div class="opts" id="s5opts"></div>
+  </div>
+
+  <!-- S6: Detalle base grasa/cottage/aguacate -->
+  <div class="step" id="s6">
+    <button class="back-btn" onclick="back()">← volver</button>
+    <div class="step-ew">Paso 5</div>
+    <div class="step-q" id="s6q">¿Qué base prefieres para la tostada?</div>
+    <div class="step-hint" id="s6h">Cada opción tiene un perfil nutricional distinto.</div>
+    <div class="opts" id="s6opts"></div>
+  </div>
+
+  <!-- S7: Detalle extra (fruta, cacao, etc) -->
+  <div class="step" id="s7">
+    <button class="back-btn" onclick="back()">← volver</button>
+    <div class="step-ew">Paso 5</div>
+    <div class="step-q" id="s7q">¿Algo extra?</div>
+    <div class="step-hint" id="s7h"></div>
+    <div class="opts" id="s7opts"></div>
+  </div>
+
+  <!-- S_FRUTA: Unified fruit selection -->
+  <div class="step" id="sFruta">
+    <button class="back-btn" onclick="back()">← volver</button>
+    <div class="step-ew">Paso 5</div>
+    <div class="step-q" id="sFrutaQ">¿Qué fruta?</div>
+    <div class="step-hint" id="sFrutaH"></div>
+    <div class="opts" id="sFrutaOpts"></div>
+  </div>
+
+  <!-- CONFIRM: after saving -->
+  <div class="step" id="sConfirm">
+    <div id="confirmContent"></div>
+    <div class="confirm-btns">
+      <button class="btn-primary" onclick="reset()">↺ Nuevo desayuno</button>
+      <button class="btn-secondary" onclick="showHistoryScreen()">📋 Ver historial</button>
+    </div>
+  </div>
+
+  <!-- RESULT -->
+  <div class="step" id="sResult">
+    <button class="back-btn" onclick="back()">← cambiar elección</button>
+    <div id="resultHTML"></div>
+    <div class="res-btns">
+      <button class="btn-primary" onclick="saveToHistory()">💾 Guardar desayuno</button>
+      <button class="btn-secondary" onclick="reset()">↺ Nuevo desayuno</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ─── STATE ───────────────────────────────────────────────
+const S = {
+  dayType:null, hours:null, fast:null, cook:null,
+  format:null, protein:null, base:null, extra:null, cacahu:null, fruta:null,
+  history:[], path:[], labels:[], stepStack:[]
+};
+
+let curStep = 's1';
+
+// ─── HISTORY (localStorage) ──────────────────────────────
+function loadHistory(){
+  try{ return JSON.parse(localStorage.getItem('carlos_bkfast')||'[]') }
+  catch(e){ return [] }
+}
+function saveHistory(h){ try{ localStorage.setItem('carlos_bkfast', JSON.stringify(h)) }catch(e){} }
+
+// ─── NAVIGATION ──────────────────────────────────────────
+function go(key, val, label){
+  S.stepStack.push(curStep);
+  S.path.push({key, val});
+  S.labels.push(label);
+  S[key] = val;
+  updateBC();
+  const next = nextStep();
+  if(next === 'sResult'){ showStep('sResult'); buildResult(); return; }
+  if(next === 'sExtra'){ showStep('sExtra'); return; }
+  if(next === 'sCacahu'){ showStep('sCacahu'); return; }
+  if(next === 'sFruta'){ showStep('sFruta'); buildSFruta(); return; }
+  if(next === 's4'){ showStep('s4'); buildS4(); return; }
+  if(next === 's5'){ showStep('s5'); buildS5(); return; }
+  if(next === 's6'){ showStep('s6'); buildS6(); return; }
+  if(next === 's7'){ showStep('s7'); buildS7(); return; }
+  showStep(next);
+}
+
+function back(){
+  if(!S.stepStack.length) return;
+  const prev = S.stepStack.pop();
+  const last = S.path.pop();
+  S.labels.pop();
+  // Clear the state key that was set when leaving this step
+  if(last) S[last.key] = null;
+  // Also clear downstream state that depends on this step
+  const downstream = {
+    's4': ['format','base','protein','extra','fruta'],
+    's5': ['protein','extra','platano'],
+    's6': ['base','protein','extra','platano'],
+    's7': ['extra','fruta'],
+    'sFruta': ['fruta'],
+    'sCacahu': ['cacahu','format','base','protein','extra','platano'],
+    's2a': ['hours','fast','cacahu','format','base','protein','extra','fruta'],
+    's2b': ['hours','fast','cacahu','format','base','protein','extra','fruta'],
+    's2c': ['fast','cacahu','format','base','protein','extra','fruta'],
+    'sExtra': ['extra'],
+  };
+  if(downstream[prev]){
+    downstream[prev].forEach(k=>{ S[k]=null; });
+  }
+  updateBC();
+  showStep(prev);
+  if(prev==='s4') buildS4();
+  else if(prev==='s5') buildS5();
+  else if(prev==='s6') buildS6();
+  else if(prev==='s7') buildS7();
+  else if(prev==='sFruta') buildSFruta();
+}
+
+function reset(){
+  Object.assign(S,{dayType:null,hours:null,fast:null,cook:null,format:null,protein:null,base:null,extra:null,cacahu:null,fruta:null,path:[],labels:[],stepStack:[]});
+  curStep = 's1';
+  document.getElementById('bc').style.display='none';
+  document.getElementById('histPanel').style.display='none';
+  showStep('s1');
+}
+
+function showStep(id){
+  document.querySelectorAll('.step').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  curStep = id;
+  updateProg();
+  updateBC();
+  // Dynamic step numbering
+  if(id!=='s1'&&id!=='sResult'){
+    const labels = {
+      's2a':'Paso 2','s2b':'Paso 2','s2c':'Paso 2',
+      'sExtra':'Paso 3','sCacahu':'Paso 3',
+      's4':'Paso 3','s6':'Paso 4','s5':'Paso 5',
+      's7':'Paso 5','sFruta':'Último paso'
+    };
+    const el = document.getElementById(id);
+    const ew = el && el.querySelector('.step-ew');
+    if(ew) ew.textContent = labels[id] || ('Paso '+(S.stepStack.length+1));
+  }
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+// ─── DECISION TREE ────────────────────────────────────────
+function nextStep(){
+  const {dayType,hours,fast,cook,format,protein,base,extra} = S;
+
+  // Casos especiales
+  if(dayType==='run' && hours==='fasted'){
+    if(!S.fruta) return 'sFruta';
+    return 'sResult';
+  }
+  if(dayType==='rest' && fast==='yes') return 'sResult';
+
+  // Paso 2: horas
+  if(!hours && dayType==='run') return 's2a';
+  if(!hours && dayType==='gym') return 's2b';
+
+  // Paso 2: descanso — ayuno o desayunar
+  if(dayType==='rest' && fast===null) return 's2c';
+
+  // RUTAS RÁPIDAS under1h — sin formato, sin cacahuete, sin cocinar
+  if(dayType==='run' && hours==='under1h'){
+    if(!S.fruta) return 'sFruta';
+    return 'sResult';
+  }
+  if(dayType==='gym' && hours==='under1h'){
+    if(!extra) return 'sExtra';
+    return 'sResult';
+  }
+
+  // Paso 3: cacahuete en polvo (todos los días excepto under1h y ayunas)
+  if(S.cacahu === null || S.cacahu === undefined) return 'sCacahu';
+
+  // Paso 4: formato
+  if(!format) return 's4';
+
+  // TORTITA: cacao (s7) → fruta (sFruta) → result
+  // PORRIDGE: cacao (s7) → fruta (sFruta) → result
+  if(format==='tortita' || format==='porridge'){
+    if(!extra) return 's7';
+    if(!S.fruta) return 'sFruta';
+    return 'sResult';
+  }
+
+  // TOSTADA: base (s6) → proteína (s5) → fruta (sFruta) — s7 skipped
+  if(format==='tostada'){
+    if(!base) return 's6';
+    if(!protein) return 's5';
+    if(!S.fruta) return 'sFruta';
+    return 'sResult';
+  }
+
+  // HUEVOS: proteína (s5) → extra (s7) → result (kiwi always in result)
+  if(format==='huevos'){
+    if(!protein) return 's5';
+    if(!extra) return 's7';
+    return 'sResult';
+  }
+
+  return 'sResult';
+}
+
+// ─── BUILD DYNAMIC STEPS ─────────────────────────────────
+function buildSFruta(){
+  const {dayType, hours, format} = S;
+  const el = document.getElementById('sFrutaOpts');
+  el.innerHTML = '';
+  let hint = '', opts = [];
+
+  // ── CARRERA AYUNAS ────────────────────────────────────
+  if(dayType==='run' && hours==='fasted'){
+    hint = 'Post-carrera: el plátano recarga el glucógeno. El kiwi añade vitamina C y antioxidantes.';
+    opts = [
+      {v:'platano+kiwi', i:'🍌🥝', l:'Plátano + kiwi (recomendado)', s:'Glucógeno + vitamina C · recuperación completa'},
+      {v:'platano',      i:'🍌',   l:'Solo plátano',                  s:'Si no tienes kiwi o quieres menos volumen'},
+    ];
+
+  // ── CARRERA 30-60 MIN ─────────────────────────────────
+  } else if(dayType==='run' && hours==='under1h'){
+    hint = 'Con tan poco margen antes de correr el plátano es esencial. El kiwi añade volumen digestivo extra.';
+    opts = [
+      {v:'platano',      i:'🍌',   l:'Solo plátano (recomendado)', s:'Carbos rápidos · digestión ultra ligera con tan poco margen'},
+      {v:'platano+kiwi', i:'🍌🥝', l:'Plátano + kiwi',             s:'Si toleras bien más volumen antes de correr'},
+    ];
+
+  // ── CARRERA 1-2H ─────────────────────────────────────
+  } else if(dayType==='run' && hours==='under2'){
+    hint = 'Con poco margen el plátano es lo esencial. El kiwi añade volumen digestivo extra.';
+    opts = [
+      {v:'platano',      i:'🍌',   l:'Solo plátano (recomendado)', s:'Carbos rápidos · digestión más ligera con poco margen'},
+      {v:'platano+kiwi', i:'🍌🥝', l:'Plátano + kiwi',             s:'Si toleras bien más volumen antes de correr'},
+    ];
+
+  // ── CARRERA 2-4H ─────────────────────────────────────
+  } else if(dayType==='run' && hours==='2to4'){
+    hint = 'Con tiempo suficiente puedes tomar ambas frutas sin problema digestivo.';
+    opts = [
+      {v:'platano+kiwi', i:'🍌🥝', l:'Plátano + kiwi (recomendado)', s:'Carbos + vitamina C · tiempo para digerir bien'},
+      {v:'platano',      i:'🍌',   l:'Solo plátano',                  s:'Si prefieres menos volumen'},
+      {v:'kiwi',         i:'🥝',   l:'Solo kiwi',                     s:'Si ya tienes carbos de otra fuente'},
+    ];
+
+  // ── CARRERA +4H ───────────────────────────────────────
+  } else if(dayType==='run' && hours==='4plus'){
+    hint = 'Con más de 4h el plátano no es urgente ahora — los carbos los gestionas más cerca de la carrera.';
+    opts = [
+      {v:'kiwi',         i:'🥝',   l:'Solo kiwi (recomendado)', s:'Vitamina C y fibra · sin carbos extra innecesarios ahora'},
+      {v:'platano+kiwi', i:'🍌🥝', l:'Plátano + kiwi',          s:'Si quieres asegurarte los carbos pre-carrera desde el desayuno'},
+    ];
+
+  // ── GYM 30-60 MIN ────────────────────────────────────
+  } else if(dayType==='gym' && hours==='under1h'){
+    // Auto — ½ plátano + kiwi ya incluidos en express result
+    setTimeout(()=>go('fruta','platano+kiwi','½ plátano + kiwi 🍌🥝'), 0);
+    return;
+
+  // ── GYM 1-2H ─────────────────────────────────────────
+  } else if(dayType==='gym' && hours==='under2'){
+    hint = 'Con poco margen el ½ plátano puede dar carbos extra. El kiwi solo es suficiente si no lo necesitas.';
+    opts = [
+      {v:'kiwi',        i:'🥝',   l:'Solo kiwi (recomendado)', s:'La base fija ya cubre bien · sin carbos extra'},
+      {v:'kiwimedio',   i:'🍌🥝', l:'½ plátano + kiwi',        s:'Si quieres carbos extra antes del gym con poco margen'},
+    ];
+
+  // ── GYM 2-4H o +4H o +5H ────────────────────────────
+  } else if(dayType==='gym'){
+    // Auto — solo kiwi, sin pregunta
+    setTimeout(()=>go('fruta','kiwi','Solo kiwi 🥝'), 0);
+    return;
+
+  // ── TORTITA (gym o carrera, todos los márgenes) ───────
+  } else if(format==='tortita'){
+    hint = 'La tortita ya lleva plátano en la masa. ¿Añades kiwi como fruta de acompañamiento?';
+    opts = [
+      {v:'kiwi', i:'🥝', l:'Con kiwi (recomendado)', s:'Vitamina C · fibra · complemento ideal de la tortita'},
+      {v:'nada', i:'✓',  l:'Sin fruta adicional',    s:'Si no tienes o prefieres más ligero'},
+    ];
+
+  // ── DESCANSO ──────────────────────────────────────────
+  } else if(dayType==='rest'){
+    // Auto — solo kiwi
+    setTimeout(()=>go('fruta','kiwi','Solo kiwi 🥝'), 0);
+    return;
+  }
+
+  // Auto-navigate if only 1 option
+  if(opts.length === 1){
+    setTimeout(()=>go('fruta', opts[0].v, opts[0].l), 0);
+    return;
+  }
+
+  document.getElementById('sFrutaQ').textContent = '¿Qué fruta?';
+  document.getElementById('sFrutaH').textContent = hint;
+  opts.forEach(o => {
+    const btn = document.createElement('button');
+    btn.className = 'opt';
+    btn.innerHTML = `<span class="opt-icon">${o.i}</span><span class="opt-lbl">${o.l}</span><span class="opt-sub">${o.s}</span>`;
+    btn.onclick = ()=>go('fruta',o.v,o.l);
+    el.appendChild(btn);
+  });
+}
+
+
+// Tiempo necesario por formato
+const FORMAT_TIME = {
+  tortita: {icon:'🕐', label:'~5 min · sartén'},
+  porridge: {icon:'🕐', label:'~3 min · microondas'},
+  huevos:   {icon:'🕐', label:'~5 min · sartén'},
+  tostada:  {icon:'⚡', label:'~2 min · sin cocinar'},
+};
+
+function buildS4(){
+  const {dayType, hours} = S;
+  const el = document.getElementById('s4opts');
+  el.innerHTML = '';
+  let opts = [];
+
+  if(dayType==='run'){
+    if(hours==='under2'){
+      opts = [
+        {v:'porridge', i:'🥣', l:'Porridge de avena',    s:'Avena + leche proteica caliente · digestión más rápida que la tortita'},
+        {v:'tostada',  i:'🍞', l:'Tostada proteica',      s:'Pan proteico + proteína + plátano · listo en 2 min'},
+      ];
+    } else {
+      opts = [
+        {v:'tortita',  i:'🥞', l:'Tortitas de claras',    s:'Avena + claras + plátano · la opción más completa para carrera'},
+        {v:'porridge', i:'🥣', l:'Porridge de avena',     s:'Caliente y cremoso · sin sartén · plátano encima'},
+        {v:'tostada',  i:'🍞', l:'Tostada proteica',      s:'Pan proteico con acompañamiento · rápido'},
+      ];
+    }
+  } else if(dayType==='gym'){
+    if(hours==='under2'){
+      opts = [
+        {v:'tortita',  i:'🥞', l:'Tortitas de claras',    s:'Avena + claras + ½ plátano · digestión rápida y proteína disponible'},
+        {v:'huevos',   i:'🍳', l:'Huevos revueltos',      s:'Proteína completa · con acompañamiento ligero (pavo o atún)'},
+        {v:'porridge', i:'🥣', l:'Porridge de avena',     s:'Más ligero que la tortita · fácil de digerir antes del gym'},
+        {v:'tostada',  i:'🍞', l:'Tostada proteica',      s:'Pan proteico + cottage · ligero, sin grasa extra'},
+      ];
+    } else { // 2to4, 4plus
+      opts = [
+        {v:'huevos',   i:'🍳', l:'Huevos revueltos',      s:'Proteína completa · la más saciante · ideal con +3h'},
+        {v:'tortita',  i:'🥞', l:'Tortitas de claras',    s:'Avena + claras + ½ plátano · carbos y proteína en uno'},
+        {v:'tostada',  i:'🍞', l:'Tostada proteica',      s:'Pan proteico con 4 combinaciones posibles · rápido'},
+        {v:'porridge', i:'🥣', l:'Porridge de avena',     s:'Caliente y cremoso · opción con cacahuete en polvo'},
+      ];
+    }
+  } else { // rest
+    opts = [
+      {v:'huevos',   i:'🍳', l:'Huevos revueltos',        s:'Mínimos carbos · máxima proteína · ideal día de descanso'},
+      {v:'tostada',  i:'🍞', l:'Tostada proteica',        s:'Pan + cottage + pavo · ligero, saciante y rápido'},
+    ];
+  }
+
+  const wrap = document.createElement('div');
+  wrap.className = 'opts';
+  opts.forEach(o => {
+    const hist = getLastForFormat(o.v);
+    const time = FORMAT_TIME[o.v];
+    const btn = document.createElement('button');
+    btn.className = 'opt' + (hist?' recommended':'');
+    btn.innerHTML = `
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:.5rem">
+        <span class="opt-icon">${o.i}</span>
+        <span style="font-family:'DM Mono',monospace;font-size:.62rem;color:var(--muted);white-space:nowrap;padding-top:.1rem">${time.icon} ${time.label}</span>
+      </div>
+      <span class="opt-lbl">${o.l}</span>
+      <span class="opt-sub">${o.s}</span>`;
+    btn.onclick = ()=>go('format',o.v,o.l);
+    wrap.appendChild(btn);
+  });
+  el.appendChild(wrap);
+}
+
+function buildS5(){
+  const {dayType, base, hours} = S;
+  const fmt = S.format; // use S.format explicitly to avoid scope issues
+  const el = document.getElementById('s5opts');
+  el.innerHTML = '';
+
+  // ── TOMATE base ───────────────────────────────────────
+  if(base==='tomate'){
+    document.getElementById('s5q').textContent = '¿Qué acompañamiento para el tomate?';
+    document.getElementById('s5h').textContent = 'El AOVE siempre va incluido. Elige si añades proteína encima.';
+    const opts = [
+      ...(dayType==='rest' ? [{v:'aove', i:'🫒', l:'Solo AOVE + sal y pimienta', s:'5ml AOVE · sal y pimienta · solo descanso · la base fija cubre la proteína'}] : []),
+      {v:'jamon', i:'🍖', l:'Jamón ibérico (~30g)', s:'En lonchas o tacos · grasa oleica = LDL ↓ · mejor opción'},
+      {v:'pavo',  i:'🦃', l:'Pechuga de pavo (~30g)', s:'Si no tienes jamón · proteína magra · sin sal ni pimienta'},
+    ];
+    const wrap = document.createElement('div');
+    wrap.className = 'opts';
+    opts.forEach(o => {
+      const btn = document.createElement('button');
+      btn.className = 'opt';
+      const gymWarn = (['jamon','pavo'].includes(o.v) && dayType==='gym' && hours==='under2')
+        ? `<span style="font-size:.65rem;color:var(--warn);margin-top:.25rem;display:block">⚠️ Con menos de 2h antes del gym puede sentarse algo pesado</span>` : '';
+      btn.innerHTML = `<span class="opt-icon">${o.i}</span><span class="opt-lbl">${o.l}</span><span class="opt-sub">${o.s}</span>${gymWarn}`;
+      btn.onclick = ()=>go('protein',o.v,o.l);
+      wrap.appendChild(btn);
+    });
+    el.appendChild(wrap);
+    return;
+  }
+
+  // ── COTTAGE / AGUACATE / HUEVOS ───────────────────────
+  document.getElementById('s5q').textContent = fmt==='huevos' ? '¿Qué acompañamiento para los huevos?' : '¿Qué proteína para la tostada?';
+  document.getElementById('s5h').textContent = fmt==='huevos' ? 'Elige uno solo — no combines dos fuentes de grasa.' : 'Cada opción tiene un perfil nutricional distinto.';
+
+  let opts = [];
+  if(fmt==='huevos'){
+    opts = [
+      {v:'aguacate', i:'🥑', l:'Aguacate',         s:'60-70g · grasa saludable · más saciante · colesterol ↓'},
+      {v:'atun',     i:'🐟', l:'Atún al natural',   s:'~60g · máxima proteína · mínima grasa · más barato'},
+      {v:'pavo',     i:'🦃', l:'Pechuga de pavo',   s:'2 lonchas (50g) · ligero · bajo en grasa'},
+    ];
+  } else {
+    opts = [
+      {v:'pavo',  i:'🦃', l:'Pechuga de pavo',  s:'2 lonchas (50g) · equilibrado · ligero'},
+      {v:'atun',  i:'🐟', l:'Atún al natural',   s:'~60g · más proteína que el pavo · sin grasa extra'},
+      {v:'huevo', i:'🥚', l:'Huevo poché',       s:'1 huevo · proteína completa + yema saludable'},
+    ];
+  }
+  const wrap = document.createElement('div');
+  wrap.className = 'opts';
+  opts.forEach(o => {
+    const btn = document.createElement('button');
+    btn.className = 'opt';
+    btn.innerHTML = `<span class="opt-icon">${o.i}</span><span class="opt-lbl">${o.l}</span><span class="opt-sub">${o.s}</span>`;
+    btn.onclick = ()=>go('protein',o.v,o.l);
+    wrap.appendChild(btn);
+  });
+  el.appendChild(wrap);
+}
+function buildS6(){
+  const {dayType, hours} = S;
+  const el = document.getElementById('s6opts');
+  document.getElementById('s6q').textContent = '¿Qué base para la tostada?';
+  document.getElementById('s6h').textContent = 'Cottage y aguacate llevan proteína aparte en el siguiente paso. Con tomate podrás elegir el acompañamiento.';
+  el.innerHTML = '';
+
+  const opts = [
+    {v:'cottage', i:'🧀', l:'Queso cottage Hacendado', s:'40-50g · más proteína · menos grasa · óptimo cualquier día'},
+    {v:'aguacate', i:'🥑', l:'Aguacate',               s:'60-70g · grasa saludable · saciante · colesterol ↓'},
+    {v:'tomate',  i:'🍅', l:'Tomate triturado',         s:'~50g + sal y pimienta · base mediterránea · luego eliges el acompañamiento'},
+  ];
+
+  const wrap = document.createElement('div');
+  wrap.className = 'opts';
+  opts.forEach(o => {
+    const btn = document.createElement('button');
+    btn.className = 'opt';
+    btn.innerHTML = `<span class="opt-icon">${o.i}</span><span class="opt-lbl">${o.l}</span><span class="opt-sub">${o.s}</span>`;
+    btn.onclick = ()=>go('base',o.v,o.l);
+    wrap.appendChild(btn);
+  });
+  el.appendChild(wrap);
+}
+function buildS7(){
+  const {dayType, hours, format, base} = S;
+  const el = document.getElementById('s7opts');
+  el.innerHTML = '';
+  let q='', h='', opts=[];
+
+  // ── PORRIDGE / TORTITA: cacao option ─────────────────
+  if(format==='porridge' || format==='tortita'){
+    q = '¿Quieres añadir cacao puro?';
+    h = '10g de cacao puro 100% — reduce el LDL, antioxidante potente, 0 azúcar añadido. Complementario al plátano, no alternativo.';
+    opts = [
+      {v:'cacao', i:'🍫', l:'Sí, con cacao puro', s:'10g mezclado · sabor chocolate · reduce LDL · 0 azúcares · recomendado'},
+      {v:'plain', i:'🌿', l:'No, sin cacao',       s:'Versión natural · con canela si quieres'},
+    ];
+
+  // ── TOSTADA: sFruta gestiona toda la fruta → auto-skip
+  } else if(format==='tostada'){
+    // sFruta handles all fruit decisions for tostada
+    setTimeout(()=>go('extra','skip','—'), 0);
+    return;
+
+  // ── HUEVOS: extra option ──────────────────────────────
+  } else if(format==='huevos'){
+    q = '¿Algo extra para completar?';
+
+    if(dayType==='rest'){
+      h = 'El kiwi siempre va incluido. La base fija ya cubre bien la proteína.';
+      opts = [
+        {v:'nada', i:'✓', l:'Sin extras (recomendado)', s:'El desayuno ya es completo · kiwi incluido siempre'},
+      ];
+
+    } else if(dayType==='gym'){
+      const prontoPronto = hours==='under2';
+      h = prontoPronto
+        ? 'El kiwi siempre va incluido. ¿Quieres añadir también ½ plátano para carbos extra?'
+        : 'El kiwi siempre va incluido. Con más de 2h no necesitas nada más.';
+      opts = prontoPronto
+        ? [
+            {v:'nada',    i:'✓',  l:'Sin ½ plátano (recomendado)', s:'El desayuno ya es completo · kiwi incluido siempre'},
+            {v:'platano', i:'🍌', l:'Añadir ½ plátano',            s:'Carbos extra si vas al gym en menos de 2h'},
+          ]
+        : [
+            {v:'nada', i:'✓', l:'Sin extras (recomendado)', s:'Con más de 2h la base fija cubre bien · kiwi incluido'},
+          ];
+
+    } else {
+      // Carrera con huevos (poco probable pero posible)
+      h = 'El kiwi siempre va incluido. La base fija cubre bien la proteína.';
+      opts = [
+        {v:'nada', i:'✓', l:'Sin extras', s:'El desayuno ya es completo · kiwi incluido siempre'},
+      ];
+    }
+  }
+
+  // Auto-navigate if only 1 option — no need to show a question
+  if(opts.length === 1){
+    setTimeout(()=>go('extra', opts[0].v, opts[0].l), 0);
+    return;
+  }
+
+  document.getElementById('s7q').textContent = q;
+  document.getElementById('s7h').textContent = h;
+
+  const row = document.createElement('div');
+  row.className = 'opts';
+  opts.forEach(o => {
+    const btn = document.createElement('button');
+    btn.className = 'opt';
+    btn.innerHTML = `<span class="opt-icon">${o.i}</span><span class="opt-lbl">${o.l}</span><span class="opt-sub">${o.s}</span>`;
+    btn.onclick = ()=>go('extra',o.v,o.l);
+    row.appendChild(btn);
+  });
+  el.appendChild(row);
+}
+
+function buildResult(){
+  const {dayType,hours,fast,cook,format,protein,base,extra} = S;
+  let name='', code='', badge='', ingredients=[], macros={}, why='', tags=[], notes=[];
+  const BASE = [
+    {t:'base',n:'Café solo',q:'sin leche ni azúcar'},
+    {t:'base',n:'Yogur proteico Mercadona',q:'120g'},
+    {t:'base',n:'Leche proteica Hacendado',q:'25ml'},
+    {t:'base',n:'Arándanos',q:'50g'},
+  ];
+
+  // GYM BAJO-60 MIN
+  if(dayType==='gym' && hours==='under1h'){
+    badge='badge-gym'; code='Gym-30/60'; name='Desayuno express pre-gym';
+    const conBarrita = extra==='barrita';
+    ingredients = [
+      {t:'main',n:conBarrita?'Barrita proteica Alcampo':'Vasito de gelatina proteica',
+        q:conBarrita?'1 barrita (40g) · ~13g proteína · tómala al terminar el desayuno':'~161g · 9g proteína · 36 kcal · la más ligera'},
+      {t:'fruit',n:'½ plátano',q:'~50g pulpa · carbos rápidos pre-entreno'},
+      {t:'fruit',n:'Kiwi (o albaricoque · mandarina)',q:'1 pieza (~76g pulpa)'},
+    ];
+    macros = conBarrita
+      ? {k:'~280',p:'~26g',c:'~36g',f:'~3g'}
+      : {k:'~175',p:'~21g',c:'~32g',f:'~1,5g'};
+    why = `<strong>Con solo 30-60 min hasta el gym</strong> — el estómago no tiene tiempo de procesar nada sólido o graso. Toma solo 80-100g de yogur (en lugar de los 120g habituales) para reducir el volumen. Sin tostada, sin huevos, sin aguacate, sin avena. El ½ plátano aporta glucosa rápida justo cuando la necesitas. ${conBarrita?'La barrita al final del desayuno — espera unos minutos antes de salir para que empiece la digestión.':'La gelatina proteica es la opción más ligera — proteína disponible sin carga digestiva.'}`;
+    tags = [{t:'a',l:'Gym-30/60'},{t:'b',l:'Yogur reducido a 80-100g'},{t:'g',l:'Sin sólidos pesados'},{t:conBarrita?'a':'p',l:conBarrita?'Barrita al final':'Gelatina: máx ligereza'}];
+    notes.push({c:'warn',t:'⚠️ Sin tostada, sin huevos, sin aguacate, sin avena. A menos tiempo, menos volumen. Si el estómago te pesa durante el entreno, la próxima vez prueba solo la base + plátano sin proteína extra.'});
+  }
+
+  // CARRERA 30-60 MIN
+  else if(dayType==='run' && hours==='under1h'){
+    badge='badge-run'; code='Run-30/60'; name='Desayuno express pre-carrera';
+    ingredients = [
+      {t:'fruit',n:'Plátano entero',q:'~100g pulpa · carbos rápidos pre-carrera'},
+      {t:'fruit',n:'Kiwi (o albaricoque · mandarina)',q:'1 pieza (~76g pulpa)'},
+    ];
+    macros = {k:'~215',p:'~14g',c:'~42g',f:'~1,5g'};
+    why = '<strong>Con 30-60 min antes de correr</strong> — prioridad absoluta: carbos disponibles, digestión rápida, mínimo volumen. El plátano entero es el elemento más importante aquí — aporta glucosa y potasio justo antes del esfuerzo. Sin barrita ni gelatina: la grasa de la barrita ralentiza la digestión justo cuando no conviene.';
+    tags = [{t:'g',l:'Run-30/60'},{t:'a',l:'Plátano entero esencial'},{t:'b',l:'Sin barrita ni gelatina'},{t:'g',l:'Máxima digestión rápida'}];
+    notes.push({c:'warn',t:'⚠️ Sin tostada, sin huevos, sin aguacate, sin avena, sin barrita. Solo lo imprescindible.'});
+    notes.push({c:'ok',t:'✓ Si toleras bien correr con el yogur, perfecto. Si no, reduce a solo plátano + café.'});
+  }
+
+  // CARRERA EN AYUNAS
+  else if(dayType==='run' && hours==='fasted'){
+    badge='badge-run'; code='Ayunas'; name='Carrera en ayunas + desayuno post-carrera';
+    const frutaVal = S.fruta || 'platano+kiwi';
+    const frutaIngAyunas = [];
+    if(frutaVal==='platano+kiwi'){ frutaIngAyunas.push({t:'fruit',n:'Plátano',q:'~100g pulpa · recarga glucógeno post-carrera'}); frutaIngAyunas.push({t:'fruit',n:'Kiwi (o albaricoque · mandarina)',q:'1 pieza (~76g pulpa) · vitamina C post-esfuerzo'}); }
+    else { frutaIngAyunas.push({t:'fruit',n:'Plátano',q:'~100g pulpa · recarga glucógeno post-carrera'}); }
+    const conKiwiAyunas = frutaVal==='platano+kiwi';
+    ingredients = [
+      {t:'pre',n:'☕ ANTES de salir',q:'Solo café solo (no rompe el ayuno · moviliza grasa)'},
+      {t:'pre',n:'💧 Agua',q:'Hidratarse bien antes de salir — el café no hidrata'},
+      {t:'post',n:'🏁 AL VOLVER — Batido whey + creatina',q:'Inmediatamente al llegar a casa'},
+      {t:'post',n:'Yogur proteico Mercadona + leche proteica',q:'120g yogur + 25ml leche'},
+      {t:'post',n:'Arándanos',q:'50g — tu base fija'},
+      ...frutaIngAyunas,
+    ];
+    macros = {k:conKiwiAyunas?'~360 post':'~320 post',p:'~45g post',c:conKiwiAyunas?'~50g post':'~38g post',f:'~4g post'};
+    why = '<strong>Opción avanzada para maximizar la oxidación de grasa.</strong> Con glucógeno bajo tras la noche y la cafeína del café movilizando ácidos grasos, el cuerpo usa grasa como combustible preferente durante toda la carrera. Recomendado especialmente cuando el día anterior no hay sido día de gym. El plátano post-carrera es imprescindible — sin él la recuperación muscular se resiente. El kiwi es opcional: si tienes apetito tras la carrera suma vitamina C y antioxidantes, pero el plátano ya cubre lo esencial.';
+    tags = [{t:'g',l:'Oxidación grasa máxima'},{t:'a',l:'Café antes · no rompe ayuno'},{t:'p',l:'Solo si ayer no fue día de gym'},{t:'b',l:'Plátano post obligatorio'}];
+    notes = [{c:'warn',t:'⚠️ Solo recomendado si el día anterior no fue día de gym. Si entrenaste ayer en el gym, mejor desayuna algo ligero antes de salir.'},
+             {c:'ok',t:'✓ La cafeína + ayuno es la combinación más efectiva para quemar grasa en carrera suave-moderada.'}];
+  }
+
+  // DESCANSO AYUNO 16:8
+  else if(dayType==='rest' && fast==='yes'){
+    badge='badge-rest'; code='Ayuno 16:8'; name='Ayuno intermitente 16:8';
+    ingredients = [
+      {t:'pre',n:'Por la mañana: café solo + agua + infusiones',q:'No rompen el ayuno'},
+      {t:'main',n:'Primera comida ~14:00',q:'Proteína + verdura + legumbre en ración moderada'},
+      {t:'main',n:'Media tarde',q:'30g frutos secos (si toca) + fruta o gelatina proteica'},
+      {t:'fruit',n:'Cena',q:'Ligera: proteína magra + verdura · lo de siempre'},
+    ];
+    macros = {k:'~1.800 día',p:'~130g día',c:'~120g día',f:'~60g día'};
+    why = '<strong>Máximo déficit para un día sin actividad.</strong> Sin entreno, el glucógeno está completo y no hay riesgo de catabolismo muscular. El café solo no rompe el ayuno y actúa como supresor del apetito. Si en algún momento sientes hambre real, come — es una herramienta, no una obligación.';
+    tags = [{t:'p',l:'Máximo déficit'},{t:'g',l:'Café no rompe ayuno'},{t:'a',l:'Primera comida ~14:00'},{t:'b',l:'Sin forzar'}];
+    notes = [{c:'info',t:'ℹ️ La primera comida no debe ser restrictiva — come normal (proteína + verdura + legumbre). El déficit ya lo tienes con el ayuno.'}];
+  }
+
+  // PORRIDGE
+  else if(format==='porridge'){
+    badge = dayType==='run'?'badge-run':'badge-gym';
+    code = 'C1';
+    const conCacao = extra==='cacao';
+    const conPlatano = S.platano==='si';
+    const platanoQty = dayType==='run' ? '1 entero' : '½ unidad';
+    name = `Porridge de avena${conCacao?' con cacao':''}${conPlatano?' con plátano':''}`;
+    ingredients = [
+      {t:'main',n:'Copos de avena integral',q:'40g — en leche proteica caliente (microondas 2 min)'},
+      ...(conCacao?[{t:'main',n:'Cacao puro 100% sin azúcar',q:'10g — reduce LDL, antioxidante, 0 azúcares'}]:[]),
+      {t:'main',n:'Canela',q:'al gusto'},
+      ...(conPlatano?[{t:'fruit',n:'Plátano troceado encima',q:`${platanoQty}`}]:[]),
+      {t:'fruit',n:'Kiwi (o albaricoque · mandarina)',q:'1 pieza (~76g pulpa)'},
+    ];
+    const fv = S.fruta || 'kiwi';
+    const hasPlatPorridge = fv==='platano+kiwi'||fv==='platano'||fv==='kiwimedio';
+    const hasKiwiPorridge = fv==='platano+kiwi'||fv==='kiwi'||fv==='kiwimedio';
+    const platPorridgeQty = dayType==='run'?'~100g pulpa · carbos pre-carrera':'~50g pulpa';
+    const frutaPorridgeIngs = [];
+    if(fv==='platano+kiwi'){frutaPorridgeIngs.push({t:'fruit',n:'Plátano',q:platPorridgeQty});frutaPorridgeIngs.push({t:'fruit',n:'Kiwi (o albaricoque · mandarina)',q:'1 pieza (~76g pulpa)'});}
+    else if(fv==='platano'){frutaPorridgeIngs.push({t:'fruit',n:'Plátano',q:platPorridgeQty});}
+    else if(fv==='kiwi'){frutaPorridgeIngs.push({t:'fruit',n:'Kiwi (o albaricoque · mandarina)',q:'1 pieza (~76g pulpa)'});}
+    else if(fv==='kiwimedio'){frutaPorridgeIngs.push({t:'fruit',n:'½ plátano',q:'~50g pulpa · carbos ligeros pre-gym'});frutaPorridgeIngs.push({t:'fruit',n:'Kiwi (o albaricoque · mandarina)',q:'1 pieza (~76g pulpa)'});}
+    ingredients = [
+      {t:'main',n:'Copos de avena integral',q:'40g — en leche proteica caliente (microondas 2 min)'},
+      ...(conCacao?[{t:'main',n:'Cacao puro 100% sin azúcar',q:'10g — reduce LDL, antioxidante, 0 azúcares'}]:[]),
+      {t:'main',n:'Canela',q:'al gusto'},
+      ...frutaPorridgeIngs,
+    ];
+    const baseKcal = conCacao?385:378;
+    const extraKcal = hasPlatPorridge?(fv==='kiwimedio'?45:dayType==='run'?89:45):0;
+    macros = {k:`~${baseKcal+extraKcal}`,p:'~20g',c:hasPlatPorridge?'~76-87g':'~64g',f:'~4g'};
+    why = `<strong>Porridge C1${conCacao?' con cacao':''}.</strong> La avena en porridge se digiere antes que en tortita. ${conCacao?'El cacao puro añade flavonoides con efecto demostrado en reducción del LDL. ':''}${hasPlatPorridge?`Plátano (${platPorridgeQty}) para los carbos ${dayType==='run'?'pre-carrera':'pre-gym'}.`:'Sin plátano — la base fija cubre los carbos suficientes.'}`;
+    tags = [{t:'g',l:'C1'},{t:'b',l:'Sin sartén'},{t:conCacao?'p':'a',l:conCacao?'Cacao: LDL ↓':'Carbos lentos'},{t:'g',l:'Listo en 3 min'}];
+    if(conCacao) notes.push({c:'ok',t:'✓ El cacao puro 100% reduce el LDL. Complementario al plátano.'});
+  }
+
+  // TORTITA
+  else if(format==='tortita'){
+    badge = dayType==='run'?'badge-run':'badge-gym';
+    code = dayType==='run'?'C3':'G3';
+    const conCacao = extra==='cacao';
+    const conPlatano = S.platano==='si';
+    const platanoQty = dayType==='run' ? '1 entero' : '½ unidad';
+    name = `Tortitas de claras con avena${conCacao?' y cacao':''}`;
+    ingredients = [
+      {t:'main',n:'Harina de avena integral',q:'35-40g'},
+      {t:'main',n:'Claras de huevo líquidas',q:'100ml (≈ 3-4 claras)'},
+      ...(conPlatano?[{t:'main',n:'Plátano en la masa',q:`${platanoQty}${dayType==='run'?' — carbos pre-carrera':'· ½ en gym'}`}]:[]),
+      ...(conCacao?[{t:'main',n:'Cacao puro 100% en la masa',q:'10g — tortita de chocolate proteica'}]:[]),
+      {t:'fruit',n:'Kiwi (o albaricoque · mandarina)',q:'1 pieza (~76g pulpa)'},
+    ];
+    const baseKcal = 332;
+    const extraKcal = conPlatano?(dayType==='run'?89:45):0;
+    macros = {k:`~${baseKcal+extraKcal}`,p:'~24-27g',c:conPlatano?(dayType==='run'?'~78g':'~57g'):'~44-55g',f:'~3g'};
+    why = `<strong>${code} — ${dayType==='run'?'la opción más completa para carrera':'versión gym con ½ plátano'}.</strong> La combinación avena + claras cubre proteína en un solo plato. ${conCacao?'Con cacao queda como una tortita de chocolate proteica — flavonoides para el colesterol sin azúcar. ':''}${conPlatano?`Plátano ${platanoQty} en la masa para los carbos ${dayType==='run'?'de carrera':'pre-gym'}.`:'Sin plátano — la base fija cubre los carbos suficientes.'}`;
+    tags = [{t:'g',l:code},{t:'b',l:'Proteína + avena'},{t:dayType==='run'?'a':'p',l:dayType==='run'?'Plátano entero carrera':'½ plátano gym'},{t:conCacao?'p':'g',l:conCacao?'Cacao: LDL ↓':'5 min en sartén'}];
+    if(conCacao) notes.push({c:'ok',t:'✓ El cacao puro 100% tiene efecto demostrado en la reducción del LDL.'});
+  }
+
+  // TOSTADA
+  else if(format==='tostada'){
+    badge = dayType==='run'?'badge-run':dayType==='gym'?'badge-gym':'badge-rest';
+    code = dayType==='run'?'C2':dayType==='rest'?'GD1-rest':'GD1';
+
+    // ── BASE TOMATE ───────────────────────────────────────
+    if(base==='tomate'){
+      const conJamon = protein==='jamon';
+      const conPavo  = protein==='pavo';
+      const soloAove = protein==='aove';
+      name = soloAove ? 'Tostada mediterránea AOVE y tomate'
+           : `Tostada mediterránea con ${conJamon?'jamón ibérico':'pavo'}`;
+      ingredients = [
+        {t:'main',n:'Pan proteico El Molino',q:'1 rebanada (~30g)'},
+        {t:'main',n:'Tomate triturado',q:`~50g${soloAove?' · sal y pimienta al gusto':''}`},
+        {t:'main',n:'AOVE',q:`5ml (1 cucharadita) · en crudo${soloAove?' · sal y pimienta al gusto':''}`},
+        ...(conJamon?[{t:'main',n:'Jamón ibérico',q:'~30g · en lonchas o tacos · grasa oleica = LDL ↓'}]:[]),
+        ...(conPavo ?[{t:'main',n:'Pechuga de pavo',q:'~30g · proteína magra · sustituto del jamón'}]:[]),
+        ...((()=>{const fv=S.fruta||'kiwi';const fi=[];if(fv==='platano+kiwi'){fi.push({t:'fruit',n:'Plátano',q:dayType==='run'?'1 entero':'½ unidad'});fi.push({t:'fruit',n:'Kiwi (o albaricoque · mandarina)',q:'1 pieza (~76g pulpa)'});}else if(fv==='platano'){fi.push({t:'fruit',n:'Plátano',q:dayType==='run'?'1 entero':'½ unidad'});}else if(fv==='kiwi'){fi.push({t:'fruit',n:'Kiwi (o albaricoque · mandarina)',q:'1 pieza (~76g pulpa)'});}else if(fv==='kiwimedio'){fi.push({t:'fruit',n:'½ plátano',q:'carbos ligeros'});fi.push({t:'fruit',n:'Kiwi (o albaricoque · mandarina)',q:'1 pieza (~76g pulpa)'});}return fi;})()),
+      ];
+      const fvTomate = S.fruta||'kiwi';
+      const hasPlatTomate = fvTomate==='platano+kiwi'||fvTomate==='platano'||fvTomate==='kiwimedio';
+      let kcal=soloAove?220:295, prot=soloAove?20:27, carbs=17, fat=soloAove?8:13;
+      if(hasPlatTomate){kcal+=(dayType==='run'?89:45);carbs+=(dayType==='run'?23:12);}
+      macros={k:`~${kcal}`,p:`~${prot}g`,c:`~${carbs}g`,f:`~${fat}g`};
+      why=`<strong>Tostada mediterránea${soloAove?' AOVE y tomate':conJamon?' con jamón ibérico':' con pavo'}.</strong> El tomate triturado aporta licopeno antioxidante y el AOVE grasa monoinsaturada que mejora el ratio LDL/HDL directamente. ${conJamon?'El jamón ibérico suma proteína con grasa mayoritariamente oleica — efecto neutro o positivo en el colesterol. Prioriza ibérico sobre serrano.':conPavo?'El pavo aporta proteína magra con muy poca grasa — buena alternativa cuando no tienes jamón en casa.':'Sin proteína animal — la base fija cubre bien la proteína. Solo recomendada en días de descanso.'}`;
+      tags=[{t:'g',l:code},{t:'b',l:'AOVE: LDL ↓'},{t:'p',l:'Licopeno antioxidante'},{t:soloAove?'p':conJamon?'a':'g',l:soloAove?'Solo descanso':conJamon?'🍖 Ibérico: grasa oleica':'Pavo: opción ligera'}];
+      if(conJamon) notes.push({c:'ok',t:'✓ La grasa del jamón ibérico de bellota es mayoritariamente ácido oleico — mismo efecto que el AOVE. Efecto neutro o positivo en LDL.'});
+      if(conPavo)  notes.push({c:'info',t:'ℹ️ El pavo tiene menos beneficio lipídico que el ibérico, pero es una opción válida cuando no tienes jamón.'});
+      if(soloAove) notes.push({c:'info',t:'ℹ️ Sin proteína animal en el componente. La base fija cubre bien la proteína. Solo recomendada en días de descanso.'});
+      if((conJamon||conPavo)&&dayType==='gym'&&S.hours==='under2') notes.push({c:'warn',t:'⚠️ Con menos de 2h antes del gym esta opción puede sentarse algo pesada. Con 2h o más, sin problema.'});
+    }
+
+    // ── BASE COTTAGE / AGUACATE ───────────────────────────
+    else {
+      const baseStr = base==='cottage'?'Cottage Hacendado':'Aguacate';
+      const protStr = protein==='pavo'?'Pechuga de pavo':protein==='atun'?'Atún al natural':'Huevo poché';
+      name=`Tostada: ${baseStr} + ${protStr}`;
+      ingredients=[
+        {t:'main',n:'Pan proteico El Molino',q:'1 rebanada (~30g) · 20g proteína/100g · 1,2g azúcares'},
+        {t:'main',n:base==='cottage'?'Queso cottage Hacendado':'Aguacate',q:base==='cottage'?'40-50g encima de la tostada':'60-70g'},
+        {t:'main',n:protein==='pavo'?'Pechuga de pavo Hacendado':protein==='atun'?'Atún al natural':'Huevo poché',
+          q:protein==='pavo'?'2 lonchas (50g)':protein==='atun'?'~60g (1 lata)':'1 huevo'},
+        ...((()=>{const fv=S.fruta||'kiwi';const fi=[];if(fv==='platano+kiwi'){fi.push({t:'fruit',n:'Plátano',q:dayType==='run'?'1 entero':'½ unidad'});fi.push({t:'fruit',n:'Kiwi (o albaricoque · mandarina)',q:'1 pieza (~76g pulpa)'});}else if(fv==='platano'){fi.push({t:'fruit',n:'Plátano',q:dayType==='run'?'1 entero':'½ unidad'});}else if(fv==='kiwi'){fi.push({t:'fruit',n:'Kiwi (o albaricoque · mandarina)',q:'1 pieza (~76g pulpa)'});}else if(fv==='kiwimedio'){fi.push({t:'fruit',n:'½ plátano',q:'carbos ligeros'});fi.push({t:'fruit',n:'Kiwi (o albaricoque · mandarina)',q:'1 pieza (~76g pulpa)'});}return fi;})()),
+      ];
+      let kcal=200,prot=20,carbs=18,fat=5;
+      if(base==='aguacate'){kcal+=70;fat+=9;}
+      if(protein==='atun'){kcal+=45;prot+=14;}
+      else if(protein==='pavo'){kcal+=44;prot+=10;}
+      else if(protein==='huevo'){kcal+=78;prot+=6;fat+=5;}
+      const fvBase = S.fruta||'kiwi';
+      const hasPlatBase = fvBase==='platano+kiwi'||fvBase==='platano'||fvBase==='kiwimedio';
+      if(hasPlatBase){kcal+=(dayType==='run'?89:45);carbs+=(dayType==='run'?23:12);}
+      macros={k:`~${kcal}`,p:`~${prot}g`,c:`~${carbs}g`,f:`~${fat}g`};
+      why=`<strong>Tostada ${code}: ${baseStr} + ${protStr}.</strong> `;
+      if(base==='cottage') why+='El cottage aporta más proteína y menos grasa que el aguacate — mejor elección en días de descanso o si ya tienes suficiente grasa en otras comidas. ';
+      else why+='El aguacate aporta grasa monoinsaturada que mejora el ratio LDL/HDL — buena elección para tu colesterol. ';
+      if(protein==='atun') why+='El atún al natural es la proteína más barata y eficiente: ~14g adicional con prácticamente 0 grasa.';
+      else if(protein==='pavo') why+='El pavo es la opción más equilibrada: proteína magra, ligero y fácil de combinar.';
+      else why+='El huevo poché suma proteína completa con yema — buena grasa saludable.';
+      tags=[{t:'g',l:code},{t:'b',l:base==='cottage'?'Cottage: más proteína':'Aguacate: colesterol ↓'},{t:'a',l:protein==='atun'?'Atún: máx proteína':protein==='pavo'?'Pavo: equilibrado':'Huevo: completo'}];
+        }
+  }
+
+  // HUEVOS
+  else if(format==='huevos'){
+    badge = dayType==='gym'?'badge-gym':'badge-rest';
+    code = 'GD2';
+    name = `Huevos revueltos + ${protein==='aguacate'?'aguacate':protein==='atun'?'atún':'pavo'}`;
+    const hasGel = false; // gelatina removed from regular desayuno — snack only
+    const hasPlatH = extra==='platano';
+    // Kiwi always included; ½ plátano only if extra==='platano' (gym 1-2h)
+    const frutaHuevosIngs = [];
+    if(extra==='platano') frutaHuevosIngs.push({t:'fruit',n:'½ plátano',q:'~50g pulpa · carbos ligeros pre-gym'});
+    frutaHuevosIngs.push({t:'fruit',n:'Kiwi (o albaricoque · mandarina)',q:'1 pieza (~76g pulpa)'});
+    ingredients = [
+      {t:'main',n:'Huevos enteros',q:'2 unidades (~0,30€ · bandeja de 12 Mercadona)'},
+      {t:'main',n:protein==='aguacate'?'Aguacate':protein==='atun'?'Atún al natural':'Pechuga de pavo',
+        q:protein==='aguacate'?'60-70g':protein==='atun'?'~60g (1 lata)':'2 lonchas (50g)'},
+      ...(hasGel?[{t:'main',n:'Vasito de gelatina proteica',q:'~161g · 9g proteína · 36 kcal · entre horas si tienes hambre'}]:[]),
+      ...frutaHuevosIngs,
+    ];
+    let kcal=200,prot=20,carbs=10,fat=8;
+    if(protein==='aguacate'){kcal+=70;fat+=9;prot+=1;}
+    else if(protein==='atun'){kcal+=45;prot+=14;}
+    else if(protein==='pavo'){kcal+=44;prot+=10;}
+    if(extra==='platano'){kcal+=45;carbs+=12;}
+    macros={k:`~${kcal}`,p:`~${prot}g`,c:`~${carbs}g`,f:`~${fat}g`};
+    why=`<strong>GD2: huevos revueltos con ${protein==='aguacate'?'aguacate':protein==='atun'?'atún':'pavo'}.</strong> `;
+    if(protein==='atun') why+='La combinación más proteica y económica. El atún al natural añade proteína sin apenas grasa.';
+    else if(protein==='aguacate') why+='La más saciante: la grasa del aguacate ralentiza la digestión y mejora el ratio LDL/HDL.';
+    else why+='Combinación equilibrada: huevos + pavo sin exceso de grasa.';
+    tags=[{t:'g',l:'GD2'},{t:'b',l:protein==='atun'?'Máx proteína':protein==='aguacate'?'Saciedad larga':'Equilibrado'},{t:'a',l:'No combines dos'},{t:dayType==='rest'?'p':'g',l:dayType==='rest'?'Mínimos carbos':'Gym: proteína completa'}];
+    notes.push({c:'info',t:'ℹ️ Nunca combines dos acompañamientos (aguacate + atún o aguacate + pavo) — uno es suficiente.'});
+  }
+
+  // RENDER
+  const isAyuno = (dayType==='run' && hours==='fasted') || (dayType==='rest' && fast==='yes');
+  const isUnder1h = hours==='under1h';
+  let ingHTML = '';
+
+  // Dot legend always shown — adapt items based on context
+  const legendItems = [
+    ...(isAyuno ? [] : [{col:'#94A3B8', label:'base fija'}]),
+    {col:'var(--acc)', label:'componente'},
+    {col:'var(--ok)', label:'fruta'},
+    ...(isAyuno ? [{col:'var(--warn)', label:'pre-entreno'},{col:'var(--rest)', label:'post-entreno'}] : []),
+  ];
+  ingHTML += `<div class="dot-legend">${legendItems.map(i=>`<span class="dot-legend-item"><span class="dl-dot" style="background:${i.col}"></span>${i.label}</span>`).join('')}</div>`;
+
+  if(!isAyuno){
+    ingHTML += `<span class="base-lbl">${isUnder1h?'Yogur reducido a 80-100g · base fija':'Base fija — siempre'}</span>`;
+    BASE.forEach(i=>{
+      let qty = (isUnder1h && i.n.includes('Yogur')) ? '80-100g (reducido · menos volumen pre-entreno)' : i.q;
+      if(S.cacahu==='yes' && i.n.includes('Yogur')) qty += ' + 15-20g cacahuete en polvo';
+      ingHTML+=`<div class="ing-item"><div class="ing-dot ${i.t}" style="width:6px;height:6px;min-width:6px;min-height:6px;border-radius:50%;flex-shrink:0;padding:0;display:block;margin-top:.3rem"></div><div style="flex:1;min-width:0"><div class="ing-name">${i.n}</div><div class="ing-qty">${qty}</div></div></div>`;
+    });
+    ingHTML += `<span class="base-lbl">Componente del día</span>`;
+  }
+  ingredients.forEach(i=>{
+    ingHTML+=`<div class="ing-item"><div class="ing-dot ${i.t}" style="width:6px;height:6px;min-width:6px;min-height:6px;border-radius:50%;flex-shrink:0;padding:0;display:block;margin-top:.3rem"></div><div style="flex:1;min-width:0"><div class="ing-name">${i.n}</div><div class="ing-qty">${i.q}</div></div></div>`;
+  });
+
+  const macHTML = `
+    <div class="mac"><span class="mac-v k">${macros.k}</span><span class="mac-l">kcal</span></div>
+    <div class="mac"><span class="mac-v p">${macros.p}</span><span class="mac-l">proteína</span></div>
+    <div class="mac"><span class="mac-v c">${macros.c}</span><span class="mac-l">carbos</span></div>
+    <div class="mac"><span class="mac-v f">${macros.f}</span><span class="mac-l">grasa</span></div>`;
+
+  const tagsHTML = tags.map(t=>`<span class="wtag ${t.t}">${t.l}</span>`).join('');
+  const notesHTML = notes.map(n=>`<div class="spec-note ${n.c}">${n.t}</div>`).join('');
+
+  document.getElementById('resultHTML').innerHTML = `
+    <div class="res-card">
+      <div class="res-hdr">
+        <span class="res-badge ${badge}">${dayType==='run'?'Carrera':dayType==='gym'?'Gimnasio':'Descanso'} · ${getHoursLabel()}</span>
+        <div class="res-name">${name}</div>
+        <div class="res-code">${code}</div>
+      </div>
+      <div class="res-sect">
+        <span class="sect-lbl">Ingredientes</span>
+        ${ingHTML}
+      </div>
+      <div class="res-sect">
+        <span class="sect-lbl">Nutrientes (componente + base)</span>
+        <div class="macros">${macHTML}</div>
+      </div>
+      <div class="res-sect">
+        <span class="sect-lbl">Por qué este desayuno</span>
+        <div class="why-txt">${why}</div>
+        <div class="why-tags">${tagsHTML}</div>
+        ${notesHTML}
+      </div>
+    </div>
+    ${!isAyuno ? `<div class="base-note"><strong>Recuerda:</strong> los macros incluyen la base fija (yogur + leche proteica + arándanos) más el componente del día. El café no suma calorías.</div>` : ''}`;
+}
+
+function getHoursLabel(){
+  const h = S.hours;
+  if(h==='fasted') return 'Ayunas';
+  if(h==='under1h') return '30-60 min';
+  if(h==='under2') return '1-2h';
+  if(h==='2to4') return '2-4h';
+  if(h==='4plus') return '+4h';
+  if(S.fast==='yes') return 'Ayuno 16:8';
+  return 'Descanso';
+}
+
+// ─── PROGRESS & BREADCRUMB ───────────────────────────────
+function updateProg(){
+  const steps = ['s1','s2a','s2b','s2c','sExtra','sCacahu','s4','s5','s6','s7','sFruta','sResult','sConfirm'];
+  const idx = steps.indexOf(curStep);
+  document.getElementById('pf').style.width = Math.round((idx/(steps.length-1))*100)+'%';
+}
+
+function updateBC(){
+  const bc = document.getElementById('bc');
+  if(!S.labels.length){ bc.style.display='none'; return; }
+  bc.style.display='flex';
+  bc.innerHTML = S.labels.map((l,i)=>{
+    const isLast = i===S.labels.length-1;
+    if(isLast){
+      return `<span class="bc-item cur">${l}</span>`;
+    }
+    return `<button class="bc-btn" onclick="backToStep(${i})">${l}</button><span class="bc-sep">›</span>`;
+  }).join('');
+}
+
+function backToStep(targetIdx){
+  // Go back to step at targetIdx in the path
+  // We need to pop until we reach that index
+  const stepsToRemove = S.path.length - 1 - targetIdx;
+  for(let i=0;i<stepsToRemove;i++){
+    const last = S.path.pop();
+    S.labels.pop();
+    const prev = S.stepStack.pop();
+    if(last) S[last.key] = null;
+  }
+  // Now go back one more to re-show that step
+  if(S.path.length > targetIdx){
+    const last = S.path.pop();
+    S.labels.pop();
+    if(last) S[last.key] = null;
+  }
+  const prevStep = S.stepStack.pop() || 's1';
+  // Clear all downstream state from target step
+  const allKeys = ['format','base','protein','extra','fruta','cacahu'];
+  // Keep only state up to targetIdx
+  const keepKeys = S.path.map(p=>p.key);
+  allKeys.forEach(k=>{ if(!keepKeys.includes(k)) S[k]=null; });
+  updateBC();
+  showStep(prevStep);
+  if(prevStep==='s4') buildS4();
+  else if(prevStep==='s5') buildS5();
+  else if(prevStep==='s6') buildS6();
+  else if(prevStep==='s7') buildS7();
+  else if(prevStep==='sFruta') buildSFruta();
+}
+
+// ─── HISTORY ─────────────────────────────────────────────
+function saveToHistory(){
+  const h = loadHistory();
+  const {dayType,hours,fast,format,protein,base,extra,fruta} = S;
+  const name = document.querySelector('.res-name')?.textContent || 'Desayuno';
+  const macros = {
+    k: document.querySelector('.mac-v.k')?.textContent || '—',
+    p: document.querySelector('.mac-v.p')?.textContent || '—',
+    c: document.querySelector('.mac-v.c')?.textContent || '—',
+    f: document.querySelector('.mac-v.f')?.textContent || '—',
+  };
+  const entry = {
+    date: new Date().toLocaleDateString('es-ES',{weekday:'short',day:'numeric',month:'short'}),
+    dayType, hours, fast, format, protein, base, extra, fruta,
+    name, macros, ts: Date.now()
+  };
+  h.unshift(entry);
+  if(h.length>10) h.pop();
+  saveHistory(h);
+  buildConfirmScreen(entry);
+  showStep('sConfirm');
+}
+
+function buildConfirmScreen(e){
+  const dayLabel = {run:'Carrera 🏃',gym:'Gimnasio 🏋️',rest:'Descanso 😴'}[e.dayType]||'—';
+  const hoursLabel = {fasted:'Ayunas',under1h:'30-60 min',under2:'1-2h','2to4':'2-4h','4plus':'+4h'}[e.hours]||'—';
+  const formatLabel = {porridge:'Porridge',tortita:'Tortitas de claras',tostada:'Tostada proteica',huevos:'Huevos revueltos'}[e.format]||'—';
+  document.getElementById('confirmContent').innerHTML = `
+    <div class="confirm-card">
+      <div class="confirm-top">
+        <span class="confirm-check">✅</span>
+        <div class="confirm-title">${e.name}</div>
+        <div class="confirm-date">Guardado · ${e.date}</div>
+      </div>
+      <div class="confirm-body">
+        <div class="confirm-row"><span class="confirm-lbl">Tipo de día</span><span class="confirm-val">${dayLabel}</span></div>
+        ${e.hours?`<div class="confirm-row"><span class="confirm-lbl">Horas hasta entreno</span><span class="confirm-val">${hoursLabel}</span></div>`:''}
+        ${e.format?`<div class="confirm-row"><span class="confirm-lbl">Formato</span><span class="confirm-val">${formatLabel}</span></div>`:''}
+      </div>
+      <div class="confirm-macros">
+        <div class="confirm-mac"><span class="confirm-mac-v" style="color:var(--warn)">${e.macros.k}</span><span class="confirm-mac-l">kcal</span></div>
+        <div class="confirm-mac"><span class="confirm-mac-v" style="color:var(--gym)">${e.macros.p}</span><span class="confirm-mac-l">proteína</span></div>
+        <div class="confirm-mac"><span class="confirm-mac-v" style="color:var(--run)">${e.macros.c}</span><span class="confirm-mac-l">carbos</span></div>
+        <div class="confirm-mac"><span class="confirm-mac-v" style="color:#92400E">${e.macros.f}</span><span class="confirm-mac-l">grasa</span></div>
+      </div>
+    </div>`;
+}
+
+function showHistoryScreen(){
+  reset();
+  const panel = document.getElementById('histPanel');
+  panel.style.display = 'block';
+  renderHistoryItems();
+}
+
+function renderHistoryItems(){
+  const h = loadHistory();
+  const items = document.getElementById('histItems');
+  items.innerHTML = '';
+
+  if(!h.length){
+    const msg = document.createElement('div');
+    msg.style.cssText = 'font-size:.78rem;color:var(--muted);font-weight:300';
+    msg.textContent = 'Aún no tienes desayunos guardados.';
+    items.appendChild(msg);
+    return;
+  }
+
+  h.forEach(function(e, i){
+    const row = document.createElement('div');
+    row.className = 'hist-item';
+    row.style.cssText = 'display:flex;align-items:center;gap:.5rem';
+
+    // Load side
+    const loadBtn = document.createElement('div');
+    loadBtn.style.cssText = 'display:flex;align-items:center;gap:.5rem;flex:1;cursor:pointer;min-width:0';
+
+    const dot = document.createElement('div');
+    dot.className = 'hist-dot ' + (e.dayType || 'gym');
+
+    const txtWrap = document.createElement('div');
+    txtWrap.style.cssText = 'flex:1;min-width:0';
+
+    const nm = document.createElement('div');
+    nm.className = 'hist-name';
+    nm.style.cssText = 'white-space:nowrap;overflow:hidden;text-overflow:ellipsis';
+    nm.textContent = e.name;
+
+    const meta = document.createElement('div');
+    meta.style.cssText = 'display:flex;gap:.4rem;align-items:center;margin-top:.15rem';
+
+    const dt = document.createElement('div');
+    dt.className = 'hist-meta';
+    dt.textContent = e.date;
+
+    const tag = document.createElement('span');
+    tag.className = 'hist-tag';
+    tag.textContent = 'repetir';
+
+    meta.appendChild(dt);
+    meta.appendChild(tag);
+    txtWrap.appendChild(nm);
+    txtWrap.appendChild(meta);
+    loadBtn.appendChild(dot);
+    loadBtn.appendChild(txtWrap);
+
+    // Capture e by value
+    (function(entry){
+      loadBtn.addEventListener('click', function(){ loadFromHistory(entry); });
+    })(e);
+
+    // Delete button
+    const del = document.createElement('button');
+    del.className = 'hist-del';
+    del.textContent = '🗑';
+    del.title = 'Borrar';
+
+    (function(idx, name){
+      del.addEventListener('click', function(ev){
+        ev.stopPropagation();
+        if(!confirm('¿Borrar "' + name + '"?')) return;
+        const hist = loadHistory();
+        hist.splice(idx, 1);
+        saveHistory(hist);
+        renderHistoryItems();
+      });
+    })(i, e.name);
+
+    row.appendChild(loadBtn);
+    row.appendChild(del);
+    items.appendChild(row);
+  });
+}
+
+
+function showHistory(){
+  const panel = document.getElementById('histPanel');
+  const isVisible = panel.style.display === 'block';
+  if(isVisible){
+    panel.style.display = 'none';
+  } else {
+    panel.style.display = 'block';
+    renderHistoryItems();
+  }
+}
+
+function hideHistory(){
+  document.getElementById('histPanel').style.display='none';
+}
+
+function loadFromHistory(e){
+  reset();
+  // Replay the selections
+  const keys = ['dayType','hours','fast','cook','cacahu','format','base','protein','extra'];
+  const labels = {
+    dayType:{run:'Carrera 🏃',gym:'Gimnasio 🏋️',rest:'Descanso 😴'},
+    hours:{fasted:'Ayunas 🌅',under1h:'30-60min ⚡',under2:'1-2h 🕐','2to4':'2-4h 🕑','4plus':'+4h 🕓'},
+    fast:{yes:'Ayuno 16:8 ⏱️',no:'Quiero desayunar 🍳'},
+    cacahu:{yes:'Con cacahuete en polvo 🥜',no:'Sin cacahuete'},
+    cook:{yes:'Con cocina 🍳',no:'Sin cocinar ⚡'},
+    format:{porridge:'Porridge 🥣',tortita:'Tortitas 🥞',tostada:'Tostada 🍞',huevos:'Huevos 🍳'},
+    base:{cottage:'Cottage 🧀',aguacate:'Aguacate 🥑',tomate:'Tomate 🍅'},
+    protein:{pavo:'Pavo 🦃',atun:'Atún 🐟',aguacate:'Aguacate 🥑',huevo:'Huevo poché 🥚',jamon:'Jamón ibérico 🥩',aove:'Solo AOVE 🫒'},
+    extra:{cacao:'Con cacao 🍫',plain:'Sin cacao 🌿',platano:'Con plátano 🍌',noplat:'Sin plátano 🥝',nada:'Sin extras ✓',gelatina:'+ Gelatina 🟢'},
+    fruta:{'platano+kiwi':'Plátano + kiwi 🍌🥝','platano':'Solo plátano 🍌','kiwi':'Solo kiwi 🥝','kiwimedio':'½ plátano + kiwi 🍌🥝','nada':'Sin fruta'},
+  };
+  keys.forEach(k=>{ if(e[k]){ S[k]=e[k]; S.labels.push(labels[k]?.[e[k]]||e[k]); S.path.push({key:k,val:e[k]}); } });
+  hideHistory();
+  updateBC();
+  showStep('sResult');
+  buildResult();
+}
+
+function getLastForFormat(fmt){
+  const h = loadHistory();
+  return h.find(e=>e.format===fmt&&e.dayType===S.dayType);
+}
+
+
+
+// ─── PWA: SERVICE WORKER ─────────────────────────────────
+if('serviceWorker' in navigator){
+  window.addEventListener('load', ()=>{
+    navigator.serviceWorker.register('sw.js').catch(()=>{});
+  });
+}
+
+// ─── PWA: INSTALL PROMPT ─────────────────────────────────
+let deferredPrompt = null;
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  deferredPrompt = e;
+  document.getElementById('installBanner').style.display = 'flex';
+});
+
+function installApp(){
+  if(!deferredPrompt) return;
+  deferredPrompt.prompt();
+  deferredPrompt.userChoice.then(()=>{ deferredPrompt=null; dismissInstall(); });
+}
+
+function dismissInstall(){
+  document.getElementById('installBanner').style.display = 'none';
+}
+
+// iOS detection — show manual install tip
+const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+if(isIOS && !isStandalone){
+  document.getElementById('iosBanner').style.display = 'flex';
+}
+</script>
+<!-- Android/Chrome install banner -->
+<div id="installBanner" style="display:none;position:fixed;bottom:0;left:0;right:0;background:#18181B;color:white;padding:1rem 1.25rem;align-items:center;justify-content:space-between;gap:.75rem;z-index:999;border-top:1px solid #333">
+  <div>
+    <div style="font-size:.88rem;font-weight:600">Instalar como app</div>
+    <div style="font-size:.72rem;opacity:.6;margin-top:.1rem">Acceso rápido desde tu pantalla de inicio</div>
+  </div>
+  <div style="display:flex;gap:.5rem;flex-shrink:0">
+    <button onclick="dismissInstall()" style="background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);color:white;padding:.4rem .75rem;border-radius:6px;font-size:.75rem;cursor:pointer">Ahora no</button>
+    <button onclick="installApp()" style="background:white;color:#18181B;border:none;padding:.4rem .85rem;border-radius:6px;font-size:.75rem;font-weight:600;cursor:pointer">Instalar</button>
+  </div>
+</div>
+
+<!-- iOS Safari install tip -->
+<div id="iosBanner" style="display:none;position:fixed;bottom:0;left:0;right:0;background:#18181B;color:white;padding:1rem 1.25rem;align-items:flex-start;gap:.75rem;z-index:999;border-top:1px solid #333">
+  <div style="flex:1">
+    <div style="font-size:.88rem;font-weight:600;margin-bottom:.3rem">Añadir a pantalla de inicio</div>
+    <div style="font-size:.75rem;opacity:.7;line-height:1.5">Pulsa <strong style="opacity:1">Compartir</strong> (□↑) en Safari → <strong style="opacity:1">Añadir a pantalla de inicio</strong> → tendrás la app con un toque</div>
+  </div>
+  <button onclick="document.getElementById('iosBanner').style.display='none'" style="background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);color:white;padding:.4rem .6rem;border-radius:6px;font-size:.75rem;cursor:pointer;flex-shrink:0">✕</button>
+</div>
+
+</body>
+</html>

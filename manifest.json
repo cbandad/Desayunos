@@ -1,0 +1,27 @@
+{
+  "name": "¿Qué desayuno hoy? — Carlos",
+  "short_name": "Desayuno",
+  "description": "Plan de desayunos personalizado según el tipo de día",
+  "start_url": "./desayuno_interactivo.html",
+  "display": "standalone",
+  "background_color": "#F2F0EB",
+  "theme_color": "#18181B",
+  "orientation": "portrait-primary",
+  "lang": "es",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "screenshots": [],
+  "categories": ["health", "lifestyle"]
+}
