@@ -600,6 +600,51 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
     <div class="opts" id="sFrutaOpts"></div>
   </div>
 
+  <!-- S_LIBRE: desayuno libre categorization -->
+  <div class="step" id="sLibre">
+    <button class="back-btn" onclick="back()">← volver</button>
+    <div class="step-ew">Paso adicional</div>
+    <div class="step-q">¿Qué tipo de desayuno libre fue?</div>
+    <div class="step-hint">Sin presión — solo para tener contexto en el historial.</div>
+    <div class="opts" id="sLibreOpts">
+      <button class="opt" onclick="go('libreType','ligero','Ligero 🥗')">
+        <span class="opt-icon">🥗</span>
+        <span class="opt-lbl">Ligero</span>
+        <span class="opt-sub">Tostada de bar · zumo · fruta · café con leche</span>
+      </button>
+      <button class="opt" onclick="go('libreType','moderado','Moderado 🍳')">
+        <span class="opt-icon">🍳</span>
+        <span class="opt-lbl">Moderado</span>
+        <span class="opt-sub">Pincho de tortilla · bocadillo pequeño · yogur + cruasán</span>
+      </button>
+      <button class="opt" onclick="go('libreType','contundente','Contundente 🥐')">
+        <span class="opt-icon">🥐</span>
+        <span class="opt-lbl">Contundente</span>
+        <span class="opt-sub">Bollería · menú completo · tostadas con mantequilla y mermelada</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- S_LIBRE_BASE: ¿tomaste la base fija? -->
+  <div class="step" id="sLibreBase">
+    <button class="back-btn" onclick="back()">← volver</button>
+    <div class="step-ew">Último paso</div>
+    <div class="step-q">¿Tomaste la base fija en casa?</div>
+    <div class="step-hint">Yogur + leche + arándanos + café. Si desayunaste fuera probablemente no.</div>
+    <div class="opts">
+      <button class="opt" onclick="go('libreBase','no','Sin base fija')">
+        <span class="opt-icon">🥐</span>
+        <span class="opt-lbl">No, solo el desayuno libre</span>
+        <span class="opt-sub">Estaba fuera · no tenía acceso al yogur y los arándanos</span>
+      </button>
+      <button class="opt" onclick="go('libreBase','si','Con base fija ✓')">
+        <span class="opt-icon">☕</span>
+        <span class="opt-lbl">Sí, también tomé la base fija</span>
+        <span class="opt-sub">Café + yogur + leche + arándanos en casa antes o después</span>
+      </button>
+    </div>
+  </div>
+
   <!-- CONFIRM: after saving -->
   <div class="step" id="sConfirm">
     <div id="confirmContent"></div>
@@ -622,10 +667,11 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 </div>
 
 <script>
+// App v2.0 — base fija + desayuno libre añadidos
 // ─── STATE ───────────────────────────────────────────────
 const S = {
   dayType:null, hours:null, fast:null, cook:null,
-  runType:null,
+  runType:null, libreType:null, libreBase:null,
   format:null, protein:null, base:null, extra:null, cacahu:null, fruta:null,
   history:[], path:[], labels:[], stepStack:[]
 };
@@ -651,6 +697,8 @@ function go(key, val, label){
   const next = nextStep();
   if(next === 'sResult'){ showStep('sResult'); buildResult(); return; }
   if(next === 'sRunType'){ showStep('sRunType'); return; }
+  if(next === 'sLibre'){ showStep('sLibre'); return; }
+  if(next === 'sLibreBase'){ showStep('sLibreBase'); return; }
   if(next === 'sExtra'){ showStep('sExtra'); return; }
   if(next === 'sCacahu'){ showStep('sCacahu'); return; }
   if(next === 'sFruta'){ showStep('sFruta'); buildSFruta(); return; }
@@ -665,15 +713,15 @@ function applyCtxClass(){
   const main = document.getElementById('main');
   if(!main) return;
   main.classList.remove('ctx-run','ctx-gym','ctx-rest');
-  // Also apply to body so prog bar (outside #main) gets context color
   document.body.classList.remove('ctx-run','ctx-gym','ctx-rest');
-  if(S.dayType==='run'){
+  const dt = S.dayType;
+  if(dt==='run'){
     main.classList.add('ctx-run');
     document.body.classList.add('ctx-run');
-  } else if(S.dayType==='gym'){
+  } else if(dt==='gym'){
     main.classList.add('ctx-gym');
     document.body.classList.add('ctx-gym');
-  } else if(S.dayType==='rest'){
+  } else if(dt==='rest'){
     main.classList.add('ctx-rest');
     document.body.classList.add('ctx-rest');
   }
@@ -685,6 +733,7 @@ function rebuildStep(stepId){
   else if(stepId==='s6') buildS6();
   else if(stepId==='s7') buildS7();
   else if(stepId==='sFruta') buildSFruta();
+  // sLibre and sLibreBase are static HTML, no rebuild needed
 }
 
 function clearDownstream(fromStep){
@@ -697,7 +746,9 @@ function clearDownstream(fromStep){
     's2c':     ['fast','cacahu','format','base','protein','extra','fruta'],
     'sExtra':  ['format','base','protein','extra','fruta'],
     'sCacahu': ['cacahu','format','base','protein','extra','fruta'],
-    's4':      ['format','base','protein','extra','fruta'],
+    's4':      ['format','base','protein','extra','fruta','libreType'],
+    'sLibre':  ['libreType','libreBase'],
+    'sLibreBase': ['libreBase'],
     's6':      ['base','protein','extra','fruta'],
     's5':      ['protein','extra','fruta'],
     's7':      ['extra','fruta'],
@@ -712,9 +763,13 @@ function back(){
   const prev = S.stepStack.pop();
   const last = S.path.pop();
   S.labels.pop();
-  // Clear key set when leaving prev step AND all downstream
   if(last) S[last.key] = null;
   clearDownstream(prev);
+  // Restore dayType from remaining path if cleared
+  if(!S.dayType){
+    const dt = S.path.find(function(p){ return p.key==='dayType'; });
+    if(dt) S.dayType = dt.val;
+  }
   applyCtxClass();
   updateBC();
   showStep(prev);
@@ -722,7 +777,7 @@ function back(){
 }
 
 function reset(){
-  Object.assign(S,{dayType:null,hours:null,fast:null,cook:null,runType:null,format:null,protein:null,base:null,extra:null,cacahu:null,fruta:null,path:[],labels:[],stepStack:[]});
+  Object.assign(S,{dayType:null,hours:null,fast:null,cook:null,runType:null,libreType:null,libreBase:null,format:null,protein:null,base:null,extra:null,cacahu:null,fruta:null,path:[],labels:[],stepStack:[]});
   curStep = 's1';
   document.getElementById('bc').style.display='none';
   document.getElementById('histPanel').style.display='none';
@@ -747,7 +802,14 @@ function showStep(id){
     };
     const el = document.getElementById(id);
     const ew = el && el.querySelector('.step-ew');
-    if(ew) ew.textContent = labels[id] || ('Paso '+(S.stepStack.length+1));
+    if(ew){
+      ew.textContent = labels[id] || ('Paso '+(S.stepStack.length+1));
+      // Set color directly via JS
+      const cs2 = getComputedStyle(document.documentElement);
+      const ewColorMap = {run:cs2.getPropertyValue('--run').trim(),gym:cs2.getPropertyValue('--gym').trim(),rest:cs2.getPropertyValue('--rest').trim()};
+      if(S.dayType && ewColorMap[S.dayType]) ew.style.color = ewColorMap[S.dayType];
+      else ew.style.color = '';
+    }
   }
   window.scrollTo({top:0,behavior:'smooth'});
 }
@@ -782,10 +844,15 @@ function nextStep(){
   }
 
   // Paso 3: cacahuete en polvo (todos los días excepto under1h y ayunas)
-  if(S.cacahu === null || S.cacahu === undefined) return 'sCacahu';
-
-  // Paso 4: formato
-  if(!format) return 's4';
+  // Para descanso: formato primero (base/libre no necesitan cacahuete)
+  // Para gym/carrera: cacahuete primero (aplica a todos los formatos)
+  if(dayType === 'rest'){
+    if(!format) return 's4';
+    if((S.cacahu === null || S.cacahu === undefined) && format !== 'libre') return 'sCacahu';
+  } else {
+    if(S.cacahu === null || S.cacahu === undefined) return 'sCacahu';
+    if(!format) return 's4';
+  }
 
   // TORTITA: cacao (s7) → fruta (sFruta) → result
   // PORRIDGE: cacao (s7) → fruta (sFruta) → result
@@ -800,6 +867,16 @@ function nextStep(){
     if(!base) return 's6';
     if(!protein) return 's5';
     if(!S.fruta) return 'sFruta';
+    return 'sResult';
+  }
+
+  // SOLO BASE: directo al resultado
+  if(format==='base') return 'sResult';
+
+  // LIBRE: categorización → base fija? → resultado
+  if(format==='libre'){
+    if(!S.libreType) return 'sLibre';
+    if(S.libreBase === null || S.libreBase === undefined) return 'sLibreBase';
     return 'sResult';
   }
 
@@ -923,6 +1000,8 @@ const FORMAT_TIME = {
   porridge: {icon:'🕐', label:'~3 min · microondas'},
   huevos:   {icon:'🕐', label:'~5 min · sartén'},
   tostada:  {icon:'⚡', label:'~2 min · sin cocinar'},
+  base:     {icon:'⚡', label:'~1 min · sin cocinar'},
+  libre:    {icon:'🥐', label:'fuera del plan'},
 };
 
 function buildS4(){
@@ -968,8 +1047,11 @@ function buildS4(){
     }
   } else { // rest
     opts = [
-      {v:'huevos',   i:'🍳', l:'Huevos revueltos',        s:'Mínimos carbos · máxima proteína · ideal día de descanso'},
-      {v:'tostada',  i:'🍞', l:'Tostada proteica',        s:'Pan + cottage + pavo · ligero, saciante y rápido'},
+      {v:'base',    i:'☕', l:'Solo base fija', rec:true,  s:'Yogur + leche + arándanos + café · sin preparación · déficit máximo'},
+      {v:'huevos',  i:'🍳', l:'Huevos revueltos',         s:'Mínimos carbos · máxima proteína · ideal día de descanso'},
+      {v:'tostada', i:'🍞', l:'Tostada proteica',         s:'Pan proteico + cottage + proteína · rápido y completo'},
+      {v:'porridge',i:'🥣', l:'Porridge de avena',        s:'Caliente y saciante · con cacao reduce LDL'},
+      {v:'libre',   i:'🥐', l:'Desayuno libre',           s:'Desayunaste fuera o algo fuera del plan · registra el tipo'},
     ];
   }
 
@@ -977,9 +1059,9 @@ function buildS4(){
   wrap.className = 'opts';
   opts.forEach(o => {
     const hist = getLastForFormat(o.v);
-    const time = FORMAT_TIME[o.v];
+    const time = FORMAT_TIME[o.v] || {icon:'', label:''};
     const btn = document.createElement('button');
-    btn.className = 'opt' + ((hist||o.rec)?' recommended':'');
+    btn.className = 'opt' + ((o.v!=='libre' && (hist||o.rec))?' recommended':'');
     btn.innerHTML = `
       <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:.5rem">
         <span class="opt-icon">${o.i}</span>
@@ -1394,26 +1476,93 @@ function buildResult(){
     notes.push({c:'info',t:'ℹ️ Nunca combines dos acompañamientos (aguacate + atún o aguacate + pavo) — uno es suficiente.'});
   }
 
+  // SOLO BASE FIJA
+  else if(format==='base'){
+    badge = 'badge-rest';
+    code = 'BASE'; name = 'Solo base fija';
+    const conCacahuBase = S.cacahu === 'yes';
+    ingredients = [
+      {t:'base',n:'Café solo',q:'sin leche ni azúcar'},
+      {t:'base',n:'Yogur proteico Hacendado',q:'120g'},
+      ...(conCacahuBase ? [{t:'base',n:'Cacahuete en polvo desgrasado',q:'15-20g mezclado en el yogur · +7g proteína'}] : []),
+      {t:'base',n:'Leche proteica Hacendado',q:'25ml mezclada con el yogur'},
+      {t:'base',n:'Arándanos',q:'50g'},
+    ];
+    macros = {k:conCacahuBase?'~225':'~185', p:conCacahuBase?'~25g':'~18g', c:conCacahuBase?'~22g':'~20g', f:conCacahuBase?'~4g':'~2g'};
+    why = '<strong>La base fija sola — opción más limpia en día de descanso.</strong> Sin preparación adicional. Cubre la proteína mínima del desayuno y mantiene el déficit calórico al máximo. Añade el cacahuete en polvo al yogur si quieres sumar +7g proteína con solo 40 kcal extra.';
+    tags = [{t:'g',l:'BASE'},{t:'p',l:'Sin preparación'},{t:'a',l:'Déficit máximo'},{t:'b',l:'~2 min'}];
+    notes.push({c:'ok',t:'✓ La opción más limpia en descanso. Si tienes hambre a media mañana, los frutos secos son el complemento ideal.'});
+  }
+
+  // DESAYUNO LIBRE
+  else if(format==='libre'){
+    badge = 'badge-rest';
+    code = 'LIBRE'; name = 'Desayuno libre';
+    const libreT = S.libreType || 'moderado';
+    const libreMap = {
+      ligero:      {k:'~250-350', p:'~8-12g',  c:'~35-50g',  f:'~5-10g',  nota:'Compensación mínima necesaria en las siguientes comidas.'},
+      moderado:    {k:'~400-550', p:'~12-20g', c:'~45-65g',  f:'~12-20g', nota:'Compensa reduciendo carbos en la comida siguiente.'},
+      contundente: {k:'~600-900', p:'~10-18g', c:'~70-100g', f:'~25-45g', nota:'Compensa con proteína + verdura en comida y cena, sin arroz ni pan.'},
+    };
+    const lm = libreMap[libreT];
+    const conBase = S.libreBase === 'si';
+    ingredients = [
+      {t:'main',n:'Desayuno fuera del plan',
+        q:libreT==='ligero'?'Tostada de bar · zumo · fruta':libreT==='moderado'?'Pincho de tortilla · bocadillo pequeño':'Bollería · menú completo'},
+      ...(conBase ? [{t:'base',n:'Base fija (tomada en casa)',q:'Café + yogur 120g + leche 25ml + arándanos 50g'}] : []),
+    ];
+    macros = {
+      k: conBase ? '~' + (parseInt(lm.k.replace('~','').split('-')[0]) + 185) + '-' + (parseInt((lm.k.replace('~','').split('-')[1]||lm.k.replace('~','').split('-')[0])) + 185) : lm.k,
+      p: lm.p,
+      c: lm.c,
+      f: lm.f
+    };
+    why = '<strong>Desayuno libre — ' + libreT + (conBase?' + base fija':'') + '.</strong> ' + lm.nota + (conBase
+      ? ' La base fija suma ~185 kcal y ~18g proteína adicionales — bien compensado.'
+      : libreT==='contundente'
+        ? ' Has comido suficiente — no añadas nada más. Compensa en comida y cena con proteína y verdura, sin hidratos extra.'
+        : ' Si el desayuno fue escaso en proteínas y vuelves a casa, considera tomarte el yogur con leche y arándanos: cubre la proteína que falta y encaja bien en el plan sin sumar calorías de más.'
+    ) + ' No pasa nada por salir del plan ocasionalmente — la consistencia a largo plazo es lo que importa.';
+    tags = [{t:'g',l:'LIBRE'},{t:libreT==='contundente'?'a':'p',l:libreT==='contundente'?'Compensar hoy':'Sin problema'},{t:'b',l:'Fuera del plan'}];
+    notes.push({c:'warn',t:'⚠️ ' + lm.nota});
+    notes.push({c:'info',t:'ℹ️ Un día libre no rompe el plan. Vuelve a la base en la siguiente comida.'});
+  }
+
   // RENDER
   const isAyuno = (dayType==='run' && hours==='fasted') || (dayType==='rest' && fast==='yes');
   const isUnder1h = hours==='under1h';
   let ingHTML = '';
 
   // Dot legend always shown — adapt items based on context
-  const legendItems = [
+  const isBase = format === 'base';
+  const isLibre = format === 'libre';
+  // Get actual CSS variable colors at runtime for legend
+  const _cs = getComputedStyle(document.documentElement);
+  const _colAcc  = _cs.getPropertyValue('--acc').trim()  || '#2563EB';
+  const _colOk   = _cs.getPropertyValue('--ok').trim()   || '#166534';
+  const _colWarn = _cs.getPropertyValue('--warn').trim() || '#B45309';
+  const _colRest = _cs.getPropertyValue('--rest').trim() || '#581C87';
+  const legendItems = isBase ? [
+    {col:'#94A3B8', label:'base fija'},
+  ] : isLibre ? [
+    {col:_colAcc,   label:'fuera del plan'},
+    ...(S.libreBase==='si' ? [{col:'#94A3B8', label:'base fija'}] : []),
+  ] : [
     ...(isAyuno ? [] : [{col:'#94A3B8', label:'base fija'}]),
-    {col:'var(--acc)', label:'componente'},
-    {col:'var(--ok)', label:'fruta'},
-    ...(isAyuno ? [{col:'var(--warn)', label:'pre-entreno'},{col:'var(--rest)', label:'post-entreno'}] : []),
+    {col:_colAcc,   label:'componente'},
+    {col:_colOk,    label:'fruta'},
+    ...(isAyuno ? [{col:_colWarn, label:'pre-entreno'},{col:_colRest, label:'post-entreno'}] : []),
   ];
   ingHTML += `<div class="dot-legend">${legendItems.map(i=>`<span class="dot-legend-item"><span class="dl-dot" style="background:${i.col}"></span>${i.label}</span>`).join('')}</div>`;
 
-  if(!isAyuno){
+  if(!isAyuno && format !== 'base' && format !== 'libre'){
     ingHTML += `<span class="base-lbl">${isUnder1h?'Yogur reducido a 80-100g · base fija':'Base fija — siempre'}</span>`;
     BASE.forEach(i=>{
       let qty = (isUnder1h && i.n.includes('Yogur')) ? '80-100g (reducido · menos volumen pre-entreno)' : i.q;
-      if(S.cacahu==='yes' && i.n.includes('Yogur')) qty += ' + 15-20g cacahuete en polvo';
       ingHTML+=`<div class="ing-item"><div class="ing-dot ${i.t}" style="width:6px;height:6px;min-width:6px;min-height:6px;border-radius:50%;flex-shrink:0;padding:0;display:block;margin-top:.3rem"></div><div style="flex:1;min-width:0"><div class="ing-name">${i.n}</div><div class="ing-qty">${qty}</div></div></div>`;
+      if(S.cacahu==='yes' && i.n.includes('Yogur')){
+        ingHTML+=`<div class="ing-item"><div class="ing-dot base" style="width:6px;height:6px;min-width:6px;min-height:6px;border-radius:50%;flex-shrink:0;padding:0;display:block;margin-top:.3rem"></div><div style="flex:1;min-width:0"><div class="ing-name">Cacahuete en polvo desgrasado</div><div class="ing-qty">15-20g mezclado en el yogur · +7g proteína</div></div></div>`;
+      }
     });
     ingHTML += `<span class="base-lbl">Componente del día</span>`;
   }
@@ -1468,54 +1617,75 @@ function getHoursLabel(){
 
 // ─── PROGRESS & BREADCRUMB ───────────────────────────────
 function updateProg(){
-  const steps = ['s1','sRunType','s2a','s2b','s2c','sExtra','sCacahu','s4','s5','s6','s7','sFruta','sResult','sConfirm'];
+  const steps = ['s1','sRunType','s2a','s2b','s2c','sExtra','sCacahu','s4','s5','s6','s7','sFruta','sLibre','sLibreBase','sResult','sConfirm'];
   const idx = steps.indexOf(curStep);
-  document.getElementById('pf').style.width = Math.round((idx/(steps.length-1))*100)+'%';
+  const pf = document.getElementById('pf');
+  pf.style.width = Math.round((idx/(steps.length-1))*100)+'%';
+  // Set color directly via JS to guarantee it works regardless of CSS cascade
+  const cs = getComputedStyle(document.documentElement);
+  const colorMap = {
+    run: cs.getPropertyValue('--run').trim() || '#166534',
+    gym: cs.getPropertyValue('--gym').trim() || '#1E3A5F',
+    rest: cs.getPropertyValue('--rest').trim() || '#581C87',
+  };
+  const dt = S.dayType;
+  pf.style.background = colorMap[dt] || cs.getPropertyValue('--acc').trim() || '#2563EB';
 }
 
 function updateBC(){
   const bc = document.getElementById('bc');
   if(!S.labels.length){ bc.style.display='none'; return; }
   bc.style.display='flex';
+  // Get context color for breadcrumb pills
+  const cs = getComputedStyle(document.documentElement);
+  const colorMap = {
+    run: cs.getPropertyValue('--run').trim() || '#166534',
+    gym: cs.getPropertyValue('--gym').trim() || '#1E3A5F',
+    rest: cs.getPropertyValue('--rest').trim() || '#581C87',
+  };
+  const ctxColor = colorMap[S.dayType] || '';
   bc.innerHTML = S.labels.map((l,i)=>{
     const isLast = i===S.labels.length-1;
     if(isLast){
-      return `<span class="bc-item cur">${l}</span>`;
+      const curStyle = ctxColor ? `style="color:${ctxColor};font-weight:500"` : '';
+      return `<span class="bc-item cur" ${curStyle}>${l}</span>`;
     }
-    return `<button class="bc-btn" onclick="backToStep(${i})">${l}</button><span class="bc-sep">›</span>`;
+    const btnStyle = ctxColor ? `style="color:${ctxColor}"` : '';
+    return `<button class="bc-btn" onclick="backToStep(${i})" ${btnStyle}>${l}</button><span class="bc-sep">›</span>`;
   }).join('');
 }
 
 function backToStep(targetIdx){
-  // targetIdx is the index in S.labels of the breadcrumb pill clicked
-  // We want to go back to the step that produced that label
-  // That step is S.stepStack[targetIdx]
-  
-  // Pop everything after targetIdx
+  // Save dayType and returnStep BEFORE any popping
+  const returnStep = S.stepStack[targetIdx] || 's1';
+  const savedDayType = S.dayType
+    || (S.path.find(function(p){ return p.key==='dayType'; }) || {}).val;
+
+  // Clear all state from targetIdx onwards
   while(S.path.length > targetIdx){
     const last = S.path.pop();
     S.labels.pop();
     S.stepStack.pop();
     if(last) S[last.key] = null;
   }
-  
-  // The step to show is what's now at top of stepStack (the step before targetIdx)
-  const prevStep = S.stepStack.length ? S.stepStack[S.stepStack.length-1] : 's1';
-  
-  // Also pop the last path entry so the step re-asks its question
+  // Also clear the choice at targetIdx itself (we're re-asking it)
   if(S.path.length > 0){
     const last = S.path.pop();
     S.labels.pop();
     S.stepStack.pop();
     if(last) S[last.key] = null;
   }
-  
-  const targetStep = S.stepStack.length ? S.stepStack[S.stepStack.length-1] : 's1';
-  clearDownstream(targetStep);
+
+  clearDownstream(returnStep);
+
+  // Restore dayType so context color survives navigation
+  // (only restore if we're not going back to re-ask the dayType question)
+  if(returnStep !== 's1' && savedDayType) S.dayType = savedDayType;
+
   applyCtxClass();
   updateBC();
-  showStep(targetStep);
-  rebuildStep(targetStep);
+  showStep(returnStep);
+  rebuildStep(returnStep);
 }
 
 // ─── HISTORY ─────────────────────────────────────────────
@@ -1679,11 +1849,13 @@ function loadFromHistory(e){
   const labels = {
     dayType:{run:'Carrera 🏃',gym:'Gimnasio 🏋️',rest:'Descanso 😴'},
     runType:{tempo:'Tempo/calidad ⚡',larga:'Tirada larga 🏃'},
+    libreType:{ligero:'Ligero 🥗',moderado:'Moderado 🍳',contundente:'Contundente 🥐'},
+    libreBase:{si:'Con base fija ☕',no:'Sin base fija'},
     hours:{fasted:'Ayunas 🌅',under1h:'30-60min ⚡',under2:'1-2h 🕐','2to4':'2-4h 🕑','4plus':'+4h 🕓'},
     fast:{yes:'Ayuno 16:8 ⏱️',no:'Quiero desayunar 🍳'},
     cacahu:{yes:'Con cacahuete en polvo 🥜',no:'Sin cacahuete'},
     cook:{yes:'Con cocina 🍳',no:'Sin cocinar ⚡'},
-    format:{porridge:'Porridge 🥣',tortita:'Tortitas 🥞',tostada:'Tostada 🍞',huevos:'Huevos 🍳'},
+    format:{porridge:'Porridge 🥣',tortita:'Tortitas 🥞',tostada:'Tostada 🍞',huevos:'Huevos 🍳',base:'Solo base ☕',libre:'Desayuno libre 🥐'},
     base:{cottage:'Cottage 🧀',aguacate:'Aguacate 🥑',tomate:'Tomate 🍅'},
     protein:{pavo:'Pavo 🦃',atun:'Atún 🐟',aguacate:'Aguacate 🥑',huevo:'Huevo poché 🥚',jamon:'Jamón ibérico 🥩',aove:'Solo AOVE 🫒'},
     extra:{cacao:'Con cacao 🍫',plain:'Sin cacao 🌿',platano:'Con plátano 🍌',noplat:'Sin plátano 🥝',nada:'Sin extras ✓',gelatina:'+ Gelatina 🟢'},

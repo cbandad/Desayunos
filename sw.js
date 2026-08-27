@@ -1,5 +1,5 @@
 // Service Worker — Desayuno Carlos
-const CACHE = 'desayuno-v1';
+const CACHE = 'desayuno-v4';
 const ASSETS = [
   './desayuno_interactivo.html',
   './manifest.json',
