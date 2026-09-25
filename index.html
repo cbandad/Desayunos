@@ -65,6 +65,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .bc-sep{color:var(--border);font-size:.65rem}
 .bc-btn{background:none;border:none;font-size:.68rem;font-family:'DM Mono',monospace;color:var(--muted);cursor:pointer;padding:0;text-decoration:underline;text-underline-offset:2px;transition:color .15s}
 .bc-btn:hover{color:var(--text)}
+.bc-btn-cur{font-weight:500;color:var(--text)}
+.bc-btn-cur:hover{opacity:.7}
 .ctx-run .bc-btn{color:var(--run)}
 .ctx-gym .bc-btn{color:var(--gym)}
 .ctx-rest .bc-btn{color:var(--rest)}
@@ -736,6 +738,22 @@ function rebuildStep(stepId){
   // sLibre and sLibreBase are static HTML, no rebuild needed
 }
 
+function goAuto(key, val){
+  // Silent auto-navigation: sets state without pushing to history
+  // Used for single-option steps that shouldn't appear in back() navigation
+  S[key] = val;
+  const next = nextStep();
+  if(next === 'sResult'){ showStep('sResult'); buildResult(); return; }
+  if(next === 'sFruta'){ showStep('sFruta'); buildSFruta(); return; }
+  if(next === 'sLibre'){ showStep('sLibre'); return; }
+  if(next === 'sLibreBase'){ showStep('sLibreBase'); return; }
+  if(next === 's4'){ showStep('s4'); buildS4(); return; }
+  if(next === 's5'){ showStep('s5'); buildS5(); return; }
+  if(next === 's6'){ showStep('s6'); buildS6(); return; }
+  if(next === 's7'){ showStep('s7'); buildS7(); return; }
+  showStep(next);
+}
+
 function clearDownstream(fromStep){
   // Keys to clear based on which step we're returning TO
   const downstream = {
@@ -745,7 +763,7 @@ function clearDownstream(fromStep){
     's2b':     ['hours','fast','cacahu','format','base','protein','extra','fruta'],
     's2c':     ['fast','cacahu','format','base','protein','extra','fruta'],
     'sExtra':  ['format','base','protein','extra','fruta'],
-    'sCacahu': ['cacahu','format','base','protein','extra','fruta'],
+    'sCacahu': ['cacahu','base','protein','extra','fruta'],
     's4':      ['format','base','protein','extra','fruta','libreType'],
     'sLibre':  ['libreType','libreBase'],
     'sLibreBase': ['libreBase'],
@@ -760,16 +778,32 @@ function clearDownstream(fromStep){
 
 function back(){
   if(!S.stepStack.length) return;
-  const prev = S.stepStack.pop();
-  const last = S.path.pop();
-  S.labels.pop();
-  if(last) S[last.key] = null;
+  // targetIdx = last index = length - 1
+  var targetIdx = S.path.length - 1;
+  var prev = S.stepStack[targetIdx] || 's1';
+
+  // Save context state before clearing
+  var savedDayType = S.dayType || (S.path.find(function(p){return p.key==='dayType';})||{}).val;
+  var savedHours   = S.hours   || (S.path.find(function(p){return p.key==='hours';  })||{}).val;
+
+  // Clear the key at targetIdx
+  if(S.path[targetIdx]) S[S.path[targetIdx].key] = null;
+
+  // Truncate arrays
+  S.path.splice(targetIdx);
+  S.labels.splice(targetIdx);
+  S.stepStack.splice(targetIdx);
+
   clearDownstream(prev);
-  // Restore dayType from remaining path if cleared
-  if(!S.dayType){
-    const dt = S.path.find(function(p){ return p.key==='dayType'; });
-    if(dt) S.dayType = dt.val;
+
+  // Restore dayType only (not hours - may have been cleared intentionally)
+  if(prev !== 's1' && savedDayType) S.dayType = savedDayType;
+  // Only restore hours if still in remaining path
+  if(!S.hours){
+    var hr2 = S.path.find(function(p){ return p.key==='hours'; });
+    if(hr2) S.hours = hr2.val;
   }
+
   applyCtxClass();
   updateBC();
   showStep(prev);
@@ -847,8 +881,8 @@ function nextStep(){
   // Para descanso: formato primero (base/libre no necesitan cacahuete)
   // Para gym/carrera: cacahuete primero (aplica a todos los formatos)
   if(dayType === 'rest'){
+    if(S.cacahu === null || S.cacahu === undefined) return 'sCacahu';
     if(!format) return 's4';
-    if((S.cacahu === null || S.cacahu === undefined) && format !== 'libre') return 'sCacahu';
   } else {
     if(S.cacahu === null || S.cacahu === undefined) return 'sCacahu';
     if(!format) return 's4';
@@ -944,7 +978,7 @@ function buildSFruta(){
   // ── GYM 30-60 MIN ────────────────────────────────────
   } else if(dayType==='gym' && hours==='under1h'){
     // Auto — ½ plátano + kiwi ya incluidos en express result
-    setTimeout(()=>go('fruta','platano+kiwi','½ plátano + kiwi 🍌🥝'), 0);
+    goAuto('fruta','platano+kiwi');
     return;
 
   // ── GYM 1-2H ─────────────────────────────────────────
@@ -958,7 +992,7 @@ function buildSFruta(){
   // ── GYM 2-4H o +4H o +5H ────────────────────────────
   } else if(dayType==='gym'){
     // Auto — solo kiwi, sin pregunta
-    setTimeout(()=>go('fruta','kiwi','Solo kiwi 🥝'), 0);
+    goAuto('fruta','kiwi');
     return;
 
   // ── TORTITA (gym o carrera, todos los márgenes) ───────
@@ -972,13 +1006,13 @@ function buildSFruta(){
   // ── DESCANSO ──────────────────────────────────────────
   } else if(dayType==='rest'){
     // Auto — solo kiwi
-    setTimeout(()=>go('fruta','kiwi','Solo kiwi 🥝'), 0);
+    goAuto('fruta','kiwi');
     return;
   }
 
   // Auto-navigate if only 1 option
   if(opts.length === 1){
-    setTimeout(()=>go('fruta', opts[0].v, opts[0].l), 0);
+    goAuto('fruta', opts[0].v);
     return;
   }
 
@@ -1081,6 +1115,27 @@ function buildS5(){
   const el = document.getElementById('s5opts');
   el.innerHTML = '';
 
+  // ── SALMON base ──────────────────────────────────────
+  if(base==='salmon'){
+    document.getElementById('s5q').textContent = '¿Qué acompañamiento para el salmón?';
+    document.getElementById('s5h').textContent = 'El salmón ya lleva sal — sin añadir más. Elige un acompañamiento que complemente.';
+    const opts = [
+      {v:'huevo', i:'🥚', l:'Huevo poché o cocido', s:'1 huevo · proteína completa · combina perfecto con el salmón'},
+      {v:'aguacate', i:'🥑', l:'Aguacate (~60g)', s:'Omega-3 + grasa monoinsaturada · la mejor combinación para el colesterol · unas gotas de limón'},
+    ];
+    const wrap = document.createElement('div');
+    wrap.className = 'opts';
+    opts.forEach((o,i) => {
+      const btn = document.createElement('button');
+      btn.className = 'opt' + (i===0?' recommended':'');
+      btn.innerHTML = `<span class="opt-icon">${o.i}</span><span class="opt-lbl">${o.l}</span><span class="opt-sub">${o.s}</span>`;
+      btn.onclick = ()=>go('protein',o.v,o.l);
+      wrap.appendChild(btn);
+    });
+    el.appendChild(wrap);
+    return;
+  }
+
   // ── TOMATE base ───────────────────────────────────────
   if(base==='tomate'){
     document.getElementById('s5q').textContent = '¿Qué acompañamiento para el tomate?';
@@ -1138,13 +1193,15 @@ function buildS6(){
   const {dayType, hours} = S;
   const el = document.getElementById('s6opts');
   document.getElementById('s6q').textContent = '¿Qué base para la tostada?';
-  document.getElementById('s6h').textContent = 'Cottage y aguacate llevan proteína aparte en el siguiente paso. Con tomate podrás elegir el acompañamiento.';
+  document.getElementById('s6h').textContent = 'Cottage y aguacate llevan proteína en el siguiente paso. Con tomate o salmón elegirás el acompañamiento.';
   el.innerHTML = '';
 
+  const conSalmon = dayType==='rest' || (dayType==='gym' && (hours==='2to4'||hours==='4plus'));
   const opts = [
     {v:'cottage', i:'🧀', l:'Queso cottage Hacendado', s:'40-50g · más proteína · menos grasa · óptimo cualquier día'},
     {v:'aguacate', i:'🥑', l:'Aguacate',               s:'60-70g · grasa saludable · saciante · colesterol ↓'},
     {v:'tomate',  i:'🍅', l:'Tomate triturado',         s:'~50g + sal y pimienta · base mediterránea · luego eliges el acompañamiento'},
+    ...(conSalmon ? [{v:'salmon', i:'🐟', l:'Salmón ahumado', s:'40-50g · omega-3 EPA/DHA · LDL ↓ · sin cocinar · luego eliges el acompañamiento'}] : []),
   ];
 
   const wrap = document.createElement('div');
@@ -1178,7 +1235,7 @@ function buildS7(){
   // ── TOSTADA: sFruta gestiona toda la fruta → auto-skip
   } else if(format==='tostada'){
     // sFruta handles all fruit decisions for tostada
-    setTimeout(()=>go('extra','skip','—'), 0);
+    goAuto('extra','skip');
     return;
 
   // ── HUEVOS: extra option ──────────────────────────────
@@ -1216,7 +1273,7 @@ function buildS7(){
 
   // Auto-navigate if only 1 option — no need to show a question
   if(opts.length === 1){
-    setTimeout(()=>go('extra', opts[0].v, opts[0].l), 0);
+    goAuto('extra', opts[0].v);
     return;
   }
 
@@ -1268,9 +1325,9 @@ function buildResult(){
     badge='badge-run'; code='Run-30/60'; name='Desayuno express pre-carrera';
     ingredients = [
       {t:'fruit',n:'Plátano entero',q:'~100g pulpa · carbos rápidos pre-carrera'},
-      {t:'fruit',n:'Kiwi (o albaricoque · mandarina)',q:'1 pieza (~76g pulpa)'},
+      ...(S.fruta==='platano+kiwi'?[{t:'fruit',n:'Kiwi (o albaricoque · mandarina)',q:'1 pieza (~76g pulpa)'}]:[]),
     ];
-    macros = {k:'~215',p:'~14g',c:'~42g',f:'~1,5g'};
+    macros = S.fruta==='platano+kiwi' ? {k:'~270',p:'~15g',c:'~55g',f:'~1,5g'} : {k:'~215',p:'~14g',c:'~42g',f:'~1,5g'};
     why = '<strong>Con 30-60 min antes de correr</strong> — prioridad absoluta: carbos disponibles, digestión rápida, mínimo volumen. El plátano entero es el elemento más importante aquí — aporta glucosa y potasio justo antes del esfuerzo. Sin barrita ni gelatina: la grasa de la barrita ralentiza la digestión justo cuando no conviene.';
     tags = [{t:'g',l:'Run-30/60'},{t:'a',l:'Plátano entero esencial'},{t:'b',l:'Sin barrita ni gelatina'},{t:'g',l:'Máxima digestión rápida'}];
     notes.push({c:'warn',t:'⚠️ Sin tostada, sin huevos, sin aguacate, sin avena, sin barrita. Solo lo imprescindible.'});
@@ -1384,8 +1441,36 @@ function buildResult(){
     badge = dayType==='run'?'badge-run':dayType==='gym'?'badge-gym':'badge-rest';
     code = dayType==='run'?'C2':dayType==='rest'?'GD1-rest':'GD1';
 
+    // ── BASE SALMON ───────────────────────────────────────
+    if(base==='salmon'){
+      const conHuevo = protein==='huevo';
+      const conAgua  = protein==='aguacate';
+      name = `Tostada de salmón ahumado con ${conHuevo?'huevo poché':'aguacate'}`;
+      const fvS = S.fruta||'kiwi';
+      const frutaSalmonIngs = [];
+      if(fvS==='platano+kiwi'){frutaSalmonIngs.push({t:'fruit',n:'Plátano',q:'~100g pulpa'});frutaSalmonIngs.push({t:'fruit',n:'Kiwi (o albaricoque · mandarina)',q:'1 pieza (~76g pulpa)'});}
+      else if(fvS==='kiwi'){frutaSalmonIngs.push({t:'fruit',n:'Kiwi (o albaricoque · mandarina)',q:'1 pieza (~76g pulpa)'});}
+      ingredients = [
+        {t:'main',n:'Pan proteico El Molino',q:'~30g (1 rebanada)'},
+        {t:'main',n:'Salmón ahumado',q:'40-50g · sin sal extra · el salmón ya lleva'},
+        ...(conHuevo?[{t:'main',n:'Huevo poché o cocido',q:'1 huevo · 2 min en microondas o previamente cocido'}]:[]),
+        ...(conAgua?[{t:'main',n:'Aguacate',q:'~60g · unas gotas de limón · pimienta negra'}]:[]),
+        {t:'main',n:'Pimienta negra',q:'al gusto'},
+        ...frutaSalmonIngs,
+      ];
+      let kcal = conHuevo ? 310 : 330;
+      let prot = conHuevo ? 30 : 26;
+      let carbs = 17;
+      let fat = conHuevo ? 12 : 20;
+      macros={k:`~${kcal}`,p:`~${prot}g`,c:`~${carbs}g`,f:`~${fat}g`};
+      why=`<strong>Tostada de salmón ahumado — la mejor opción para el colesterol.</strong> El salmón aporta omega-3 EPA/DHA con efecto demostrado en la reducción de triglicéridos y mejora del ratio LDL/HDL. ${conAgua?'La combinación salmón + aguacate concentra dos tipos de grasa saludable en un solo desayuno — máximo beneficio cardiovascular.':'El huevo poché añade proteína completa sin apenas grasa extra.'} Sin sal adicional — el salmón ya lleva suficiente.`;
+      tags=[{t:'g',l:code},{t:'p',l:'Omega-3: LDL ↓'},{t:'b',l:conAgua?'Omega-3+mono':'Proteína completa'},{t:'a',l:'Sin cocinar'}];
+      notes.push({c:'ok',t:'✓ El omega-3 EPA/DHA del salmón ahumado tiene efecto demostrado en la reducción de triglicéridos y mejora del colesterol.'});
+      notes.push({c:'info',t:'ℹ️ El salmón ahumado tiene sodio elevado (~700-900mg/100g). No añadas sal y modera el consumo si el resto del día es salado.'});
+    }
+
     // ── BASE TOMATE ───────────────────────────────────────
-    if(base==='tomate'){
+    else if(base==='tomate'){
       const conJamon = protein==='jamon';
       const conPavo  = protein==='pavo';
       const soloAove = protein==='aove';
@@ -1413,7 +1498,7 @@ function buildResult(){
     }
 
     // ── BASE COTTAGE / AGUACATE ───────────────────────────
-    else {
+    else if(base!=='salmon'){
       const baseStr = base==='cottage'?'Cottage Hacendado':'Aguacate';
       const protStr = protein==='pavo'?'Pechuga de pavo':protein==='atun'?'Atún al natural':'Huevo poché';
       name=`Tostada: ${baseStr} + ${protStr}`;
@@ -1646,41 +1731,43 @@ function updateBC(){
   const ctxColor = colorMap[S.dayType] || '';
   bc.innerHTML = S.labels.map((l,i)=>{
     const isLast = i===S.labels.length-1;
-    if(isLast){
-      const curStyle = ctxColor ? `style="color:${ctxColor};font-weight:500"` : '';
-      return `<span class="bc-item cur" ${curStyle}>${l}</span>`;
-    }
     const btnStyle = ctxColor ? `style="color:${ctxColor}"` : '';
-    return `<button class="bc-btn" onclick="backToStep(${i})" ${btnStyle}>${l}</button><span class="bc-sep">›</span>`;
+    const sep = isLast ? '' : `<span class="bc-sep">›</span>`;
+    return `<button class="bc-btn${isLast?' bc-btn-cur':''}" onclick="backToStep(${i})" ${btnStyle}>${l}</button>${sep}`;
   }).join('');
 }
 
 function backToStep(targetIdx){
-  // Save dayType and returnStep BEFORE any popping
+  // Step to return to = the step that WAS SHOWN when choice targetIdx was made
   const returnStep = S.stepStack[targetIdx] || 's1';
+
+  // Save dayType before clearing (needed for context color)
   const savedDayType = S.dayType
     || (S.path.find(function(p){ return p.key==='dayType'; }) || {}).val;
+  // Save hours before clearing (needed for buildS6 salmon check)
+  const savedHours = S.hours
+    || (S.path.find(function(p){ return p.key==='hours'; }) || {}).val;
 
-  // Clear all state from targetIdx onwards
-  while(S.path.length > targetIdx){
-    const last = S.path.pop();
-    S.labels.pop();
-    S.stepStack.pop();
-    if(last) S[last.key] = null;
-  }
-  // Also clear the choice at targetIdx itself (we're re-asking it)
-  if(S.path.length > 0){
-    const last = S.path.pop();
-    S.labels.pop();
-    S.stepStack.pop();
-    if(last) S[last.key] = null;
+  // Clear ALL state keys from targetIdx onwards
+  for(var i = targetIdx; i < S.path.length; i++){
+    if(S.path[i]) S[S.path[i].key] = null;
   }
 
+  // Truncate all three arrays to targetIdx (remove targetIdx and beyond)
+  S.path.splice(targetIdx);
+  S.labels.splice(targetIdx);
+  S.stepStack.splice(targetIdx);
+
+  // Run clearDownstream to catch any state not in path
   clearDownstream(returnStep);
 
-  // Restore dayType so context color survives navigation
-  // (only restore if we're not going back to re-ask the dayType question)
+  // Restore dayType only (not hours - user may be re-selecting it)
   if(returnStep !== 's1' && savedDayType) S.dayType = savedDayType;
+  // Only restore hours if it's still in the remaining path (was NOT cleared)
+  if(!S.hours){
+    var hr = S.path.find(function(p){ return p.key==='hours'; });
+    if(hr) S.hours = hr.val;
+  }
 
   applyCtxClass();
   updateBC();
